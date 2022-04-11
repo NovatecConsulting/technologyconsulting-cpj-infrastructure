@@ -30,7 +30,7 @@ on:
   #     - actions
 
 jobs:
-  build:
+  terraform_plan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -39,6 +39,75 @@ jobs:
       - name: Terraform plan
         env:
           TF_ACTION: 'plan' #${{ github.event.inputs.tfAction }}
+
+          TF_VAR_labname: ${{ github.event.inputs.labName }}
+          TF_VAR_location: ${{ secrets.LOCATION }}
+          TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants }}
+          TF_VAR_vmSizeAks: ${{ github.event.inputs.vmSizeAks }}
+          TF_VAR_nodecount: ${{ github.event.inputs.nodeCount }}
+          TF_VAR_clientid: ${{ secrets.ARM_CLIENT_ID }}
+          TF_VAR_clientsecret: ${{ secrets.ARM_CLIENT_SECRET }}
+          TF_VAR_rsgcommon: ${{ secrets.RSGCOMMON }}
+          
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
+          STATE_SAACCOUNTNAME: ${{ secrets.STATE_SAACCOUNTNAME }}
+
+          ZIPPASS: ${{ secrets.ZIPPASS }}
+          SSHUSERPW: ${{ secrets.SSHUSERPW }}
+          RSGCOMMON: ${{ secrets.RSGCOMMON }}
+          LOCATION: ${{ secrets.LOCATION }}
+          LABNAMEINVENTORYSTORAGEACCOUNT: ${{ secrets.LABNAMEINVENTORYSTORAGEACCOUNT }}
+          HUGOVERSION: ${{ secrets.HUGOVERSION }}
+
+        run: |
+          #!/bin/bash
+          set -xe
+
+          docker run \
+            -v "$(pwd)"/:/workspace \
+            -w /workspace \
+            hashicorp/terraform:latest \
+                init \
+                    -backend-config="key=${{ env.TF_VAR_labname }}-components.tfstate" \
+                    -backend-config="access_key=${{ env.STATE_BLOBACCESSKEY }}" \
+                    -backend-config=storage_account_name="${{ env.STATE_SAACCOUNTNAME }}"
+          
+          docker run \
+            -e "ARM_SUBSCRIPTION_ID=${{ env.ARM_SUBSCRIPTION_ID }}" \
+            -e "ARM_CLIENT_ID=${{ env.ARM_CLIENT_ID }}" \
+            -e "ARM_CLIENT_SECRET=${{ env.ARM_CLIENT_SECRET }}" \
+            -e "ARM_TENANT_ID=${{ env.ARM_TENANT_ID }}" \
+            -e "STATE_BLOBACCESSKEY=${{ env.STATE_BLOBACCESSKEY }}" \
+            -e "TF_VAR_labname=${{ env.TF_VAR_labname }}" \
+            -e "TF_VAR_location=${{ env.TF_VAR_location }}" \
+            -e "TF_VAR_labNumberParticipants=${{ env.TF_VAR_labNumberParticipants }}" \
+            -e "TF_VAR_vmSizeAks=${{ env.TF_VAR_vmSizeAks }}" \
+            -e "TF_VAR_nodecount=${{ env.TF_VAR_nodecount }}" \
+            -e "TF_VAR_clientid=${{ env.TF_VAR_clientid }}" \
+            -e "TF_VAR_clientsecret=${{ env.TF_VAR_clientsecret }}" \
+            -e "TF_VAR_rsgcommon=${{ env.TF_VAR_rsgcommon }}" \
+            -e "TF_VAR_sshUserPw=${{ env.SSHUSERPW }}" \
+            -v "$(pwd)"/:/workspace \
+            -w /workspace \
+            hashicorp/terraform:latest \
+              ${{ env.TF_ACTION }} \
+              ${{ env.TF_OPTIONS }}
+        working-directory: 'infrastructureAsCode'
+
+  terraform_apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Terraform apply
+        env:
+          TF_ACTION: 'apply' #${{ github.event.inputs.tfAction }}
+          TF_OPTIONS: '--auto-approve'
 
           TF_VAR_labname: ${{ github.event.inputs.labName }}
           TF_VAR_location: ${{ secrets.LOCATION }}
