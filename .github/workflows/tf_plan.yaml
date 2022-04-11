@@ -1,0 +1,145 @@
+name: Terraform plan
+
+on:
+  workflow_dispatch:
+    inputs:
+
+      tfAction:
+        description: "The action to perform on the Terraform state"
+        required: true
+        type: string
+
+      hugoVersion:
+        displayname: Hugo version
+        description: The Hugo version to use
+        required: true
+        default: "0.76.1"
+
+      labname:
+        displayname: Lab name
+        description: The name of the lab
+        required: true
+        default: "mva"
+
+      labnameinventoryStorageAccount:
+        displayname: Lab name inventory storage account
+        description: The name of the storage account for the lab name inventory
+        required: true
+        default: "cloudacademyinventoryitf"
+
+      labNumberParticipants:
+        displayname: Lab number of participants
+        description: The number of participants in the lab
+        required: true
+        default: "20"
+
+      location:
+        displayname: Location
+        description: The location of the lab
+        required: true
+        default: "westeurope"
+
+      nodecount:
+        displayname: Node count
+        description: The number of nodes to create
+        required: true
+        default: "3"
+
+      rsgcommon:
+        displayname: Resource group common
+        description: The common resource group for the lab
+        required: true
+        default: "cloudacademy-common"
+
+      vmSizeAks:
+        displayname: VM size AKS
+        description: The size of the AKS VM
+        required: true
+        default: "Standard_E8_v3"
+
+      sshUserPw:
+        displayname: SSH user password
+        description: The SSH user password
+        required: true
+        default: "CPJSchulung2022"
+
+      ZIPPASS:
+        displayname: ZIP password
+        description: The ZIP password
+        required: true
+        default: "cpjsecretpassword"
+
+  push:
+    branches:
+      - main
+      - actions
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Terraform plan
+        env:
+          TF_ACTION: ${{ github.event.inputs.tfAction }}
+
+          TF_VAR_labname: ${{ github.event.inputs.labName }}
+          TF_VAR_location: ${{ github.event.inputs.location }}
+          TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants }}
+          TF_VAR_vmSizeAks: ${{ github.event.inputs.vmSizeAks }}
+          TF_VAR_nodecount: ${{ github.event.inputs.nodeCount }}
+          TF_VAR_clientid: ${{ secrets.ARM_CLIENT_ID}
+          TF_VAR_clientsecret: ${secrets.ARM_CLIENT_SECRET}
+          TF_VAR_rsgcommon: ${rsgcommon}
+          
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
+        - run: |
+          #!/bin/bash
+          set -e
+          set -x
+
+          if [ -z "$TF_VAR_labname" ] ;
+          then
+              echo "environmentname is unset" ;
+              exit 1;
+          fi
+
+          if [[ $TF_ACTION != "plan" ]];then
+            TF_OPTIONS="--auto-approve"
+          fi
+
+          docker run \
+                  -v "$(pwd)"/:/workspace \
+                  -w /workspace \
+                  hashicorp/terraform:latest \
+                      init \
+                          -backend-config="key=${TF_VAR_labname}-components.tfstate" \
+                          -backend-config="access_key=$(STATE_BLOBACCESSKEY)" \
+                          -backend-config=storage_account_name="${STATE_SAACCOUNTNAME}"
+
+          docker run \
+                  -e ARM_SUBSCRIPTION_ID=$(ARM_SUBSCRIPTION_ID) \
+                  -e ARM_CLIENT_ID=$(ARM_CLIENT_ID) \
+                  -e ARM_CLIENT_SECRET=$(ARM_CLIENT_SECRET) \
+                  -e ARM_TENANT_ID=$(ARM_TENANT_ID) \
+                  -e STATE_BLOBACCESSKEY=$(STATE_BLOBACCESSKEY) \
+                  -e TF_VAR_labname=$TF_VAR_labname \
+                  -e TF_VAR_location=$TF_VAR_location \
+                  -e TF_VAR_labNumberParticipants=$TF_VAR_labNumberParticipants \
+                  -e TF_VAR_vmSizeAks=$TF_VAR_vmSizeAks \
+                  -e TF_VAR_nodecount=$TF_VAR_nodecount \
+                  -e TF_VAR_clientid=$(ARM_CLIENT_ID) \
+                  -e TF_VAR_clientsecret=$(ARM_CLIENT_SECRET) \        
+                  -e TF_VAR_rsgcommon=$(rsgcommon) \
+                  -v "$(pwd)"/:/workspace \
+                  -w /workspace \
+                  hashicorp/terraform:latest \
+                      $TF_ACTION \
+                      $TF_OPTIONS
+
+        workingDirectory: 'infrastructureAsCode'
