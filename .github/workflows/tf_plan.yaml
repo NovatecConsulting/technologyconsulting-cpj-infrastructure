@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
 
-      labname:
+      labName:
         description: The name of the lab
         required: true
         default: "mva"
@@ -14,7 +14,7 @@ on:
         required: true
         default: "20"
 
-      nodecount:
+      nodeCount:
         description: The number of nodes to create
         required: true
         default: "3"
