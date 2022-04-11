@@ -5,19 +5,31 @@ on:
     inputs:
 
       labName:
-        description: The name of the lab
-        required: true
-        default: "mva"
+        description: The name of the lab (defaults to mva)
+        required: false
 
       labNumberParticipants:
-        description: The number of participants in the lab
-        required: true
-        default: "20"
+        description: The number of participants in the lab (defaults to 20)
+        required: false
 
       nodeCount:
-        description: The number of nodes to create
+        description: The number of nodes to create (defaults to 3)
+        required: false
+
+      destroy:
+        description: Destroy the lab? (defaults to false)
+        type: boolean
+        required: false
+
+      auswahl:
         required: true
-        default: "3"
+        type: choice
+        description: The stages to run (defaults to all)
+        options:
+          - "create"
+          - "destroy"
+          - "all"
+
 
 jobs:
   terraform_plan:
@@ -27,12 +39,13 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Terraform plan
+
         env:
           TF_ACTION: 'plan'
 
-          TF_VAR_labname: ${{ github.event.inputs.labName }}
-          TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants }}
-          TF_VAR_nodecount: ${{ github.event.inputs.nodeCount }}
+          TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
+          TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
+          TF_VAR_nodecount: ${{ github.event.inputs.nodeCount || '3'}}
 
           TF_VAR_vmSizeAks: 'Standard_E8_v3'
           TF_VAR_rsgcommon: 'cloudacademy-common'
@@ -80,6 +93,9 @@ jobs:
               ${{ env.TF_ACTION }} \
               
       - name: Terraform apply
+        env:
+          TF_ACTION: 'apply'
+          TF_OPTIONS: '--auto-approve'
         run: |
           #!/bin/bash
           set -xe
