@@ -1,10 +1,7 @@
 # configure terraform to use an Azure Storage for sync all platform's state
 terraform {
   backend "azurerm" {
-    # storage_account_name = "willBeConfiguredByInitPhaseAndEnvironmentVar"
     container_name       = "terraformstate"
-    # key                  = "willBeConfiguredByInitPhaseAndEnvironmentVar"
-    # access_key           = "willBeConfiguredByInitPhaseAndEnvironmentVar"
   }
 }
 
@@ -65,6 +62,6 @@ variable "sshUserPw" {
 
 provider "azurerm" {
     # will receive configration by environment variables
-    version = "2.32.0"
+    #version = "2.32.0"
     features {}
 }
