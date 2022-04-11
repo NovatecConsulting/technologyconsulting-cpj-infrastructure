@@ -45,8 +45,8 @@ jobs:
           TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants }}
           TF_VAR_vmSizeAks: ${{ github.event.inputs.vmSizeAks }}
           TF_VAR_nodecount: ${{ github.event.inputs.nodeCount }}
-          TF_VAR_clientid: ${{ secrets.ARM_CLIENT_ID}
-          TF_VAR_clientsecret: ${secrets.ARM_CLIENT_SECRET}
+          TF_VAR_clientid: ${{ secrets.ARM_CLIENT_ID }}
+          TF_VAR_clientsecret: ${secrets.ARM_CLIENT_SECRET }}
           TF_VAR_rsgcommon: ${{ secrets.RSGCOMMON }}
           
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
