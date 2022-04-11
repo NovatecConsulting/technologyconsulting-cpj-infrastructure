@@ -1,4 +1,4 @@
-name: Terraform plan
+name: CPJ Lifecycle
 
 on:
   workflow_dispatch:
