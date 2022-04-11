@@ -77,6 +77,11 @@ jobs:
                     -backend-config=storage_account_name="${{ env.STATE_SAACCOUNTNAME }}"
           
           docker run \
+            -e "ARM_SUBSCRIPTION_ID=${{ env.ARM_SUBSCRIPTION_ID }}" \
+            -e "ARM_CLIENT_ID=${{ env.ARM_CLIENT_ID }}" \
+            -e "ARM_CLIENT_SECRET=${{ env.ARM_CLIENT_SECRET }}" \
+            -e "ARM_TENANT_ID=${{ env.ARM_TENANT_ID }}" \
+            -e "STATE_BLOBACCESSKEY=${{ env.STATE_BLOBACCESSKEY }}" \
             -e "TF_VAR_labname=${{ env.TF_VAR_labname }}" \
             -e "TF_VAR_location=${{ env.TF_VAR_location }}" \
             -e "TF_VAR_labNumberParticipants=${{ env.TF_VAR_labNumberParticipants }}" \
