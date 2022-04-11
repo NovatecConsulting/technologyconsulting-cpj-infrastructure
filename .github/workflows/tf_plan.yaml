@@ -67,15 +67,15 @@ jobs:
           set -e
           set -x
 
-          if [ -z "$TF_VAR_labname" ] ;
-          then
-              echo "environmentname is unset" ;
-              exit 1;
-          fi
+          # if [ -z "$TF_VAR_labname" ] ;
+          # then
+          #     echo "environmentname is unset" ;
+          #     exit 1;
+          # fi
 
-          if [[ $TF_ACTION != "plan" ]];then
-            TF_OPTIONS="--auto-approve"
-          fi
+          # if [[ $TF_ACTION != "plan" ]];then
+          #   TF_OPTIONS="--auto-approve"
+          # fi
 
           docker run \
                   -v "$(pwd)"/:/workspace \
