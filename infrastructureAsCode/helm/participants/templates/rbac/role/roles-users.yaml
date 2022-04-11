@@ -1,0 +1,23 @@
+{{- $root := . -}}
+
+{{ range $k, $v := until ( int $root.Values.participant.replicas) }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: "{{ $root.Values.namespace.name }}-{{$v}}-role"
+  namespace: "{{ $root.Values.namespace.name }}-{{$v}}"
+rules:
+  - apiGroups:
+      - "*"
+    resources:
+      - "*"
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+{{- end}}

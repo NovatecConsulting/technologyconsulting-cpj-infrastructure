@@ -1,0 +1,63 @@
+# kind: Pod
+# apiVersion: v1
+# metadata:
+# name: {{ .Values.participant.name }}-0
+# labels:
+#   app: sysbox-pod-test
+# annotations:
+#   io.kubernetes.cri-o.userns-mode: "auto:size=65536"
+# spec:
+# # runtimeClassName: {{ .Values.participant.pod.runtimeClassName }}
+# terminationGracePeriodSeconds: {{ .Values.participant.pod.terminationGracePeriodSeconds }}
+# containers:
+#   - name: sysbox-pod-test
+#     image: {{ .Values.participant.pod.image }}
+#     ports:
+#       - containerPort: {{ .Values.participant.pod.containerSSHPort }}
+#     volumeMounts:
+#       - name:  {{ .Values.participant.volumeClaimTemplates.name }}
+#         mountPath: {{ .Values.participant.pod.mountPathRoot }}
+#         subPath: homeroot
+#       - name: {{ .Values.participant.volumeClaimTemplates.name }}
+#         mountPath: {{ .Values.participant.pod.mountPathNovatec }}
+#         subPath: homenovatec
+#       - name: {{ .Values.participant.volumeClaimTemplates.name }}
+#         mountPath: {{ .Values.participant.pod.mountPathDocker }}
+#         subPath: varlibdocker
+# volumes:
+#   - name:  {{ .Values.participant.volumeClaimTemplates.name }}
+#     persistentVolumeClaim:
+#       claimName: sysbox-azurefile
+
+# ---
+
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+# name: sysbox-azurefile
+# spec:
+# accessModes:
+#   - ReadWriteOnce
+# storageClassName: sysbox-azurefile
+# resources:
+#   requests:
+#     storage: 5Gi
+
+# ---
+
+# kind: StorageClass
+# apiVersion: storage.k8s.io/v1
+# metadata:
+# name: sysbox-azurefile
+# provisioner: kubernetes.io/azure-file
+# mountOptions:
+# - dir_mode=0777
+# - file_mode=0777
+# - uid=0
+# - gid=0
+# - mfsymlinks
+# - cache=strict
+# - actimeo=30
+# parameters:
+# skuName: Standard_LRS
+# shareName: sysbox-pod-file-share

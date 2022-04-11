@@ -1,0 +1,54 @@
+# kind: Pod
+# apiVersion: v1
+# metadata:
+#  name: nginx
+# spec:
+#  containers:
+#    - name: nginxpod
+#      image: mcr.microsoft.com/oss/nginx/nginx:1.15.5-alpine
+#      resources:
+#        requests:
+#          cpu: 100m
+#          memory: 128Mi
+#        limits:
+#          cpu: 250m
+#          memory: 256Mi
+#      volumeMounts:
+#        - mountPath: "/mnt/azure"
+#          name: volume
+#  volumes:
+#    - name: volume
+#      persistentVolumeClaim:
+#        claimName: nginx-azurefile
+
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#  name: nginx-azurefile
+# spec:
+#  accessModes:
+#    - ReadWriteOnce
+#  storageClassName: nginx-azurefile
+#  resources:
+#    requests:
+#      storage: 5Gi
+
+# ---
+
+# kind: StorageClass
+# apiVersion: storage.k8s.io/v1
+# metadata:
+#  name: nginx-azurefile
+# provisioner: kubernetes.io/azure-file
+# mountOptions:
+#  - dir_mode=0777
+#  - file_mode=0777
+#  - uid=0
+#  - gid=0
+#  - mfsymlinks
+#  - cache=strict
+#  - actimeo=30
+# parameters:
+#  skuName: Standard_LRS
+#  shareName: nginx-pod-file-share

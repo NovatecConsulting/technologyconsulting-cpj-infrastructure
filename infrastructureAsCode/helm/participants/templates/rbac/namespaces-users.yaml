@@ -1,0 +1,11 @@
+{{- $root := . -}}
+
+{{ range $k, $v := until ( int $root.Values.participant.replicas) }}
+---
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: "{{ $root.Values.namespace.name }}-{{$v}}"
+  labels:
+    name: "{{ $root.Values.namespace.name }}-{{$v}}"
+{{- end}}

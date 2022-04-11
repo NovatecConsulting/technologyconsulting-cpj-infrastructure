@@ -1,0 +1,25 @@
+# Default values for sysbox.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+serviceAccount:
+  name: "sysbox-label-node"
+  namespace: "kube-system"
+
+cluserRole:
+  name: "sysbox-node-labeler"
+
+clusterRoleBinding:
+  name: "sysbox-label-node-rb"
+
+daemonSet:
+  name: "sysbox-deploy-k8s"
+  namespace: "kube-system"
+  pod:
+    name: "sysbox-deploy-k8s"
+    image: "registry.nestybox.com/nestybox/sysbox-deploy-k8s:v0.4.1"
+    command: "/opt/sysbox/scripts/sysbox-deploy-k8s.sh ce install"
+
+
+runtimeClass:
+  name: "sysbox-runc"

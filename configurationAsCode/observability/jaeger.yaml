@@ -1,0 +1,79 @@
+# set up a simple single Jaeger instance as we don't need Jaeger Agent Sidecar auto-injection for now that would be provided by the the operator, cf. https://www.jaegertracing.io/docs/1.21/operator/
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jaeger-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  template:
+    metadata:
+      labels:
+        app: jaeger
+    spec:
+      volumes:
+        - name: jaeger-data
+          persistentVolumeClaim:
+            claimName: jaeger-data
+      containers:
+      - image: jaegertracing/all-in-one:1.27 # https://hub.docker.com/r/jaegertracing/all-in-one/tags?page=1&ordering=last_updated
+        name: jaeger
+        env:
+        - name: SPAN_STORAGE_TYPE
+          value: 'badger'
+        - name: BADGER_EPHEMERAL
+          value: 'false'
+        - name: BADGER_DIRECTORY_VALUE
+          value: '/badger/data'
+        - name: BADGER_DIRECTORY_KEY
+          value: '/badger/key'
+        volumeMounts:
+          - name: jaeger-data
+            mountPath: /badger
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: jaeger
+  name: jaeger
+spec:
+  type: ClusterIP
+  ports:
+  - name: http-jaeger-thrift
+    port: 14268
+  - name: http-metrics
+    port: 14269
+  - name: http-jaeger-frontend
+    port: 16686
+  selector:
+    app: jaeger
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: jaeger
+spec:
+  endpoints:
+  - interval: 15s
+    port: http-metrics
+  selector:
+    matchLabels:
+      app: jaeger

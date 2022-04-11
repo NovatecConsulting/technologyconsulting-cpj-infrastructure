@@ -1,0 +1,17 @@
+{{- $root := . -}}
+
+{{ range $k, $v := until ( int $root.Values.participant.replicas) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ $root.Values.participant.label }}-{{$v}}-service"
+spec:
+  type: {{ $root.Values.participant.pod.serviceType }}
+  selector:
+    statefulset.kubernetes.io/pod-name: "{{ $root.Values.participant.name }}-{{$v}}"
+  ports:
+    - protocol: TCP
+      port: {{ $root.Values.participant.pod.servicePort }}
+      targetPort: {{ $root.Values.participant.pod.containerPort }}
+{{- end}}

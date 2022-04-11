@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.webssh.deployment.name }}
+  labels:
+    test: {{ .Values.webssh.deployment.label }}
+
+spec:
+  replicas: {{ .Values.webssh.deployment.replicas }}
+  selector:
+    matchLabels:
+      test: {{ .Values.webssh.deployment.label }}
+  template:
+    metadata:
+      labels:
+        test: {{ .Values.webssh.deployment.label }}
+    spec:
+      containers:
+        - name: {{ .Values.webssh.deployment.name }}
+          image: {{ .Values.webssh.deployment.image }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.webssh.deployment.containerPort }}
+              protocol: TCP

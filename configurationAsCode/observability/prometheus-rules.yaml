@@ -1,0 +1,392 @@
+  - name: blackbox-exporter
+    rules:
+    - alert: ProbeFailed
+      expr: probe_success == 0
+      for: 5m
+      labels:
+        severity: error
+      annotations:
+        summary: "Probe failed (instance {{ $labels.instance }})"
+        description: "Probe failed\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+    - alert: SlowProbe
+      expr: avg_over_time(probe_duration_seconds[1m]) > 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Slow probe (instance {{ $labels.instance }})"
+        description: "Blackbox probe took more than 1s to complete\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+    - alert: HttpStatusCode
+      expr: probe_http_status_code <= 199 OR probe_http_status_code >= 400
+      for: 5m
+      labels:
+        severity: error
+      annotations:
+        summary: "HTTP Status Code (instance {{ $labels.instance }})"
+        description: "HTTP status code is not 200-399\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+    - alert: SslCertificateWillExpireSoon
+      expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 30
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "SSL certificate will expire soon (instance {{ $labels.instance }})"
+        description: "SSL certificate expires in 30 days\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+    - alert: SslCertificateHasExpired
+      expr: probe_ssl_earliest_cert_expiry - time()  <= 0
+      for: 5m
+      labels:
+        severity: error
+      annotations:
+        summary: "SSL certificate has expired (instance {{ $labels.instance }})"
+        description: "SSL certificate has expired already\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+    - alert: HttpSlowRequests
+      expr: avg_over_time(probe_http_duration_seconds[1m]) > 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "HTTP slow requests (instance {{ $labels.instance }})"
+        description: "HTTP request took more than 1s\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+    - alert: SlowPing
+      expr: avg_over_time(probe_icmp_duration_seconds[1m]) > 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Slow ping (instance {{ $labels.instance }})"
+        description: "Blackbox ping took more than 1s\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+  - name: k8s-api-server-cert-expiry
+    rules:
+    - alert: K8sAPIServerSSLCertExpiringAfterThreeMonths
+      expr: probe_ssl_earliest_cert_expiry{job="kube-api-blackbox"} - time() < 86400 * 90
+      labels:
+        severity: warning
+      annotations:
+        summary: "Kubernetes API Server SSL certificate will expire after three months (instance {{ $labels.instance }})"
+        description: "Kubernetes API Server SSL certificate expires in 90 days\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+  - name: node-exporter-extra
+    rules:
+    - alert: Node_CPUidle
+      expr: avg by(instance)(irate(node_cpu_seconds_total{mode='idle'}[5m])) < 0.1
+      for: 2h
+      labels:
+        severity: warning
+      annotations:
+        summary: "Node '{{ $labels.instance }}' CPU idle is low"
+        description: "Over the last 2 hours there was hardly any idle CPU time on '{{ $labels.instance }}'. Current value: {{ $value }}. Are there any CPU hogs active on that host?"
+    - alert: Node_CPUiowait
+      expr: avg by(instance)(irate(node_cpu_seconds_total{mode='iowait'}[5m])) > 0.1
+      for: 60m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Node '{{ $labels.instance }}' CPU iowait is high"
+        description: "Over the last 10 minutes there was high CPU iowait on '{{ $labels.instance }}'. Current value: {{ $value }}. Is the storage working as it should, or is it just overloaded?"
+    - alert: Node_FilesystemReadonly
+      expr: node_filesystem_readonly{fstype!~".*lxcfs|.*tmpfs|.*rootfs|.*squashfs"} > 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Read-only filesystem on '{{ $labels.instance }}'"
+        description: "On '{{ $labels.instance }}' the mountpoint '{{ $labels.mountpoint }}' is read-only for 5 minutes now. This mostly indicates storage issues and needs to be investigated."
+    - alert: Node_Load5
+      expr: node_load5 / count(count(node_cpu_seconds_total) without (mode)) without (cpu) > 2
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High load5 on '{{ $labels.instance }}'"
+        description: "On '{{ $labels.instance }}' the normalized load5 exceeds 2 for 10 minutes now. Current value: {{ $value }}."
+    - alert: Node_MemoryUsable
+      expr: ( node_memory_MemFree_bytes + node_memory_Buffers_bytes + node_memory_Cached_bytes ) / node_memory_MemTotal_bytes < 0.1
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Memory starvation on '{{ $labels.instance }}'"
+        description: "On '{{ $labels.instance }}' there is less than 10% of total RAM still usable for 10 minutes now. Current value: {{ $value }}."
+    - alert: Node_Uptime
+      expr: time() - node_boot_time_seconds < 10 * 60
+      labels:
+        severity: warning
+      annotations:
+        summary: "Reboot of '{{ $labels.instance }}'"
+        description: "The node '{{ $labels.instance }}' seems to have rebooted within the last 10 minutes. Was this planned?"
+    - alert: Node_TimeDelta
+      expr: abs(node_time_seconds - timestamp(node_time_seconds)) > 2
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Time delta on '{{ $labels.instance }}'"
+        description: "On the node '{{ $labels.instance }}' the time delta between the returned node time and the measured timestamp of that value is larger than 2 seconds for more then 5 minutes now, indicating time drift. Note: This does not query a (public) NTP server, as the node_exporter checks run more frequent than those usually allow. Current value: {{ $value }}."
+    - alert: Node_ProcessNearFDLimits
+      expr: process_open_fds / process_max_fds > 0.8
+      for: 10m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Too many open files for '{{ $labels.job }}' on '{{ $labels.instance }}'"
+        description: "On the node '{{ $labels.instance }}' the job '{{ $labels.job }}' has more than 80% of its max open files over the last 10 minutes. Currently open: {{ $value }}."
+  # https://awesome-prometheus-alerts.grep.to/rules.html
+    - alert: HostOutOfMemory
+      expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host out of memory (instance {{ $labels.instance }})
+        description: "Node memory is filling up (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostMemoryUnderMemoryPressure
+      expr: rate(node_vmstat_pgmajfault[1m]) > 1000
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host memory under memory pressure (instance {{ $labels.instance }})
+        description: "The node is under heavy memory pressure. High rate of major page faults\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostUnusualNetworkThroughputIn
+      expr: sum by (instance) (rate(node_network_receive_bytes_total[2m])) / 1024 / 1024 > 100
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host unusual network throughput in (instance {{ $labels.instance }})
+        description: "Host network interfaces are probably receiving too much data (> 100 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostUnusualNetworkThroughputOut
+      expr: sum by (instance) (rate(node_network_transmit_bytes_total[2m])) / 1024 / 1024 > 100
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host unusual network throughput out (instance {{ $labels.instance }})
+        description: "Host network interfaces are probably sending too much data (> 100 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostUnusualDiskReadRate
+      expr: sum by (instance) (rate(node_disk_read_bytes_total[2m])) / 1024 / 1024 > 50
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host unusual disk read rate (instance {{ $labels.instance }})
+        description: "Disk is probably reading too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostUnusualDiskWriteRate
+      expr: sum by (instance) (rate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 50
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host unusual disk write rate (instance {{ $labels.instance }})
+        description: "Disk is probably writing too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostUnusualDiskReadLatency
+      expr: rate(node_disk_read_time_seconds_total[1m]) / rate(node_disk_reads_completed_total[1m]) > 0.1 and rate(node_disk_reads_completed_total[1m]) > 0
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host unusual disk read latency (instance {{ $labels.instance }})
+        description: "Disk latency is growing (read operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostUnusualDiskWriteLatency
+      expr: rate(node_disk_write_time_seconds_total[1m]) / rate(node_disk_writes_completed_total[1m]) > 0.1 and rate(node_disk_writes_completed_total[1m]) > 0
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host unusual disk write latency (instance {{ $labels.instance }})
+        description: "Disk latency is growing (write operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostHighCpuLoad
+      expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+      for: 0m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host high CPU load (instance {{ $labels.instance }})
+        description: "CPU load is > 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostCpuStealNoisyNeighbor
+      expr: avg by(instance) (rate(node_cpu_seconds_total{mode="steal"}[5m])) * 100 > 10
+      for: 0m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host CPU steal noisy neighbor (instance {{ $labels.instance }})
+        description: "CPU steal is > 10%. A noisy neighbor is killing VM performances or a spot instance may be out of credit.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    # 1000 context switches is an arbitrary number.
+    # Alert threshold depends on nature of application.
+    # Please read: https://github.com/samber/awesome-prometheus-alerts/issues/58
+    - alert: HostContextSwitching
+      expr: (rate(node_context_switches_total[5m])) / (count without(cpu, mode) (node_cpu_seconds_total{mode="idle"})) > 50000
+      for: 0m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host context switching (instance {{ $labels.instance }})
+        description: "Context switching is growing on node (> 50000 / s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostSwapIsFillingUp
+      expr: (1 - (node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes)) * 100 > 80
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host swap is filling up (instance {{ $labels.instance }})
+        description: "Swap is filling up (>80%)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostPhysicalComponentTooHot
+      expr: node_hwmon_temp_celsius > 75
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host physical component too hot (instance {{ $labels.instance }})
+        description: "Physical hardware component too hot\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostNodeOvertemperatureAlarm
+      expr: node_hwmon_temp_crit_alarm_celsius == 1
+      for: 0m
+      labels:
+        severity: critical
+      annotations:
+        summary: Host node overtemperature alarm (instance {{ $labels.instance }})
+        description: "Physical node temperature alarm triggered\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostOomKillDetected
+      expr: increase(node_vmstat_oom_kill[1m]) > 0
+      for: 0m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host OOM kill detected (instance {{ $labels.instance }})
+        description: "OOM kill detected\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostEdacCorrectableErrorsDetected
+      expr: increase(node_edac_correctable_errors_total[1m]) > 0
+      for: 0m
+      labels:
+        severity: info
+      annotations:
+        summary: Host EDAC Correctable Errors detected (instance {{ $labels.instance }})
+        description: "Host {{ $labels.instance }} has had {{ printf \"%.0f\" $value }} correctable memory errors reported by EDAC in the last 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostEdacUncorrectableErrorsDetected
+      expr: node_edac_uncorrectable_errors_total > 0
+      for: 0m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host EDAC Uncorrectable Errors detected (instance {{ $labels.instance }})
+        description: "Host {{ $labels.instance }} has had {{ printf \"%.0f\" $value }} uncorrectable memory errors reported by EDAC in the last 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostNetworkReceiveErrors
+      expr: rate(node_network_receive_errs_total[2m]) / rate(node_network_receive_packets_total[2m]) > 0.01
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host Network Receive Errors (instance {{ $labels.instance }})
+        description: "Host {{ $labels.instance }} interface {{ $labels.device }} has encountered {{ printf \"%.0f\" $value }} receive errors in the last two minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostNetworkTransmitErrors
+      expr: rate(node_network_transmit_errs_total[2m]) / rate(node_network_transmit_packets_total[2m]) > 0.01
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host Network Transmit Errors (instance {{ $labels.instance }})
+        description: "Host {{ $labels.instance }} interface {{ $labels.device }} has encountered {{ printf \"%.0f\" $value }} transmit errors in the last two minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostNetworkInterfaceSaturated
+      expr: (rate(node_network_receive_bytes_total{device!~"^tap.*"}[1m]) + rate(node_network_transmit_bytes_total{device!~"^tap.*"}[1m])) / node_network_speed_bytes{device!~"^tap.*"} > 0.8 < 10000
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host Network Interface Saturated (instance {{ $labels.instance }})
+        description: "The network interface \"{{ $labels.device }}\" on \"{{ $labels.instance }}\" is getting overloaded.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostConntrackLimit
+      expr: node_nf_conntrack_entries / node_nf_conntrack_entries_limit > 0.8
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host conntrack limit (instance {{ $labels.instance }})
+        description: "The number of conntrack is approaching limit\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostClockSkew
+      expr: (node_timex_offset_seconds > 0.05 and deriv(node_timex_offset_seconds[5m]) >= 0) or (node_timex_offset_seconds < -0.05 and deriv(node_timex_offset_seconds[5m]) <= 0)
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host clock skew (instance {{ $labels.instance }})
+        description: "Clock skew detected. Clock is out of sync.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: HostClockNotSynchronising
+      expr: min_over_time(node_timex_sync_status[1m]) == 0 and node_timex_maxerror_seconds >= 16
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host clock not synchronising (instance {{ $labels.instance }})
+        description: "Clock not synchronising.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: KubernetesMemoryPressure
+      expr: kube_node_status_condition{condition="MemoryPressure",status="true"} == 1
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: Kubernetes memory pressure (instance {{ $labels.instance }})
+        description: "{{ $labels.node }} has MemoryPressure condition\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: KubernetesDiskPressure
+      expr: kube_node_status_condition{condition="DiskPressure",status="true"} == 1
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: Kubernetes disk pressure (instance {{ $labels.instance }})
+        description: "{{ $labels.node }} has DiskPressure condition\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: KubernetesOutOfDisk
+      expr: kube_node_status_condition{condition="OutOfDisk",status="true"} == 1
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: Kubernetes out of disk (instance {{ $labels.instance }})
+        description: "{{ $labels.node }} has OutOfDisk condition\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: KubernetesOutOfCapacity
+      expr: sum by (node) ((kube_pod_status_phase{phase="Running"} == 1) + on(uid) group_left(node) (0 * kube_pod_info{pod_template_hash=""})) / sum by (node) (kube_node_status_allocatable{resource="pods"}) * 100 > 90
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Kubernetes out of capacity (instance {{ $labels.instance }})
+        description: "{{ $labels.node }} is out of capacity\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: KubernetesContainerOomKiller
+      expr: (kube_pod_container_status_restarts_total - kube_pod_container_status_restarts_total offset 10m >= 1) and ignoring (reason) min_over_time(kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}[10m]) == 1
+      for: 0m
+      labels:
+        severity: warning
+      annotations:
+        summary: Kubernetes container oom killer (instance {{ $labels.instance }})
+        description: "Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} has been OOMKilled {{ $value }} times in the last 10 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: KubernetesPersistentvolumeclaimPending
+      expr: kube_persistentvolumeclaim_status_phase{phase="Pending"} == 1
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Kubernetes PersistentVolumeClaim pending (instance {{ $labels.instance }})
+        description: "PersistentVolumeClaim {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is pending\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: KubernetesVolumeOutOfDiskSpace
+      expr: kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes * 100 < 10
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Kubernetes Volume out of disk space (instance {{ $labels.instance }})
+        description: "Volume is almost full (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: KubernetesVolumeFullInFourDays
+      expr: predict_linear(kubelet_volume_stats_available_bytes[6h], 4 * 24 * 3600) < 0
+      for: 0m
+      labels:
+        severity: critical
+      annotations:
+        summary: Kubernetes Volume full in four days (instance {{ $labels.instance }})
+        description: "{{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is expected to fill up within four days. Currently {{ $value | humanize }}% is available.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: KubernetesPersistentvolumeError
+      expr: kube_persistentvolume_status_phase{phase=~"Failed|Pending", job="kube-state-metrics"} > 0
+      for: 0m
+      labels:
+        severity: critical
+      annotations:
+        summary: Kubernetes PersistentVolume error (instance {{ $labels.instance }})
+        description: "Persistent volume is in bad state\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"

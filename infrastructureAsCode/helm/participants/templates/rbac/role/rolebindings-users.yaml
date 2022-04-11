@@ -1,0 +1,19 @@
+{{- $root := . -}}
+
+{{ range $k, $v := until ( int $root.Values.participant.replicas) }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: "{{ $root.Values.namespace.name }}-{{$v}}-role-binding"
+  namespace: "{{ $root.Values.namespace.name }}-{{$v}}"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: "{{ $root.Values.namespace.name }}-{{$v}}-role"
+subjects:
+  - kind: ServiceAccount
+    name: "{{ $root.Values.namespace.name }}-{{$v}}-sa"
+    namespace: "{{ $root.Values.namespace.name }}-{{$v}}"
+{{- end}}
+

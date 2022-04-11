@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.participant.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.participant.label }}
+  serviceName: {{ .Values.participant.label }}-service
+  replicas: {{ .Values.participant.replicas }}
+  podManagementPolicy: Parallel
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.participant.label }}
+      annotations:
+        io.kubernetes.cri-o.userns-mode: "auto:size=65536"
+    spec:
+      runtimeClassName: {{ .Values.participant.pod.runtimeClassName }}
+      terminationGracePeriodSeconds: {{ .Values.participant.pod.terminationGracePeriodSeconds }}
+      containers:
+        - name: {{ .Values.participant.pod.name }}
+          image: {{ .Values.participant.pod.image }}
+          ports:
+            - containerPort: {{ .Values.participant.pod.containerSSHPort }}
+          volumeMounts:
+            - name: {{ .Values.participant.volumeClaimTemplates.name }}
+              mountPath: {{ .Values.participant.pod.mountPathRoot }}
+              subPath: homeroot
+            - name: {{ .Values.participant.volumeClaimTemplates.name }}
+              mountPath: {{ .Values.participant.pod.mountPathNovatec }}
+              subPath: homenovatec
+            - name: {{ .Values.participant.volumeClaimTemplates.name }}
+              mountPath: {{ .Values.participant.pod.mountPathDocker }}
+              subPath: varlibdocker
+
+
+  volumeClaimTemplates:
+    - metadata:
+        name: {{ .Values.participant.volumeClaimTemplates.name }}
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: {{ .Values.participant.volumeClaimTemplates.storage.className }}
+        resources:
+          requests:
+            storage: {{ .Values.participant.volumeClaimTemplates.storage.size }}

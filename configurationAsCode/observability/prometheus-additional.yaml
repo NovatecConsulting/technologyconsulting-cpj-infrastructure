@@ -1,0 +1,14 @@
+- job_name: 'blackbox-kube-api'
+  metrics_path: /probe
+  params:
+    module: [kube-api]
+  static_configs:
+  - targets:
+    - https://kubernetes.default.svc/api
+  relabel_configs:
+   - source_labels: [__address__]
+     target_label: __param_target
+   - source_labels: [__param_target]
+     target_label: target
+   - target_label: __address__
+     replacement: prometheus-blackbox-exporter:9115

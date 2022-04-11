@@ -1,0 +1,49 @@
+# Default values for participantPod.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# POD
+participant:
+  name: "participant-pod-statefulset"
+  replicas: 30
+  label: "participant-pod"
+  pod:
+    servicePort: 22
+    serviceType: LoadBalancer
+    name: "participant-docker-pod"
+    image: "novatec/technologyconsulting-training-usercontainer:latest"
+    runtimeClassName: "sysbox-runc"
+    containerSSHPort: 22
+    mountPathRoot: "/root"
+    mountPathNovatec: "/home/novatec"
+    mountPathDocker: "/var/lib/docker"
+    # mountPathDocker: "/var/lib"
+    terminationGracePeriodSeconds: 20
+
+
+  volumeClaimTemplates:
+    name: "pod-storage"
+    storage:
+      className: "azure-pod-storage"
+      size: 10Gi
+
+# RBAC
+
+namespace:
+  name: "user"
+
+
+# Webssh
+webssh:
+  deployment:
+    name: "webssh-server"
+    replicas: 1
+    image: "snsyzb/webssh:latest"
+    containerPort: 8080
+    label: "webssh-server"
+
+  service:
+    name: "webssh-server"
+    type: LoadBalancer
+    websshPort: 80
+

@@ -1,0 +1,17 @@
+{{- $root := . -}}
+
+{{ range $k, $v := until ( int $root.Values.participant.replicas) }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: "{{ $root.Values.namespace.name }}-{{$v}}-cluster-role-binding"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: "{{ $root.Values.namespace.name }}-{{$v}}-cluster-role"
+subjects:
+  - kind: ServiceAccount
+    name: "{{ $root.Values.namespace.name }}-{{$v}}-sa"
+    namespace: "{{ $root.Values.namespace.name }}-{{$v}}"
+{{- end}}

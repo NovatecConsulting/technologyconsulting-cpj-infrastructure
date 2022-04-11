@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.webssh.service.name }}
+  labels:
+    test: {{ .Values.webssh.deployment.label }}
+spec:
+  type: {{ .Values.webssh.service.type }}
+  ports:
+    - port: {{ .Values.webssh.service.websshPort }}
+      targetPort: {{ .Values.webssh.deployment.containerPort }}
+      protocol: TCP
+  selector:
+    test: {{ .Values.webssh.deployment.label }}
