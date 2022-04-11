@@ -10,61 +10,51 @@ on:
         type: string
 
       hugoVersion:
-        displayname: Hugo version
         description: The Hugo version to use
         required: true
         default: "0.76.1"
 
       labname:
-        displayname: Lab name
         description: The name of the lab
         required: true
         default: "mva"
 
       labnameinventoryStorageAccount:
-        displayname: Lab name inventory storage account
         description: The name of the storage account for the lab name inventory
         required: true
         default: "cloudacademyinventoryitf"
 
       labNumberParticipants:
-        displayname: Lab number of participants
         description: The number of participants in the lab
         required: true
         default: "20"
 
       location:
-        displayname: Location
         description: The location of the lab
         required: true
         default: "westeurope"
 
       nodecount:
-        displayname: Node count
         description: The number of nodes to create
         required: true
         default: "3"
 
       rsgcommon:
-        displayname: Resource group common
         description: The common resource group for the lab
         required: true
         default: "cloudacademy-common"
 
       vmSizeAks:
-        displayname: VM size AKS
         description: The size of the AKS VM
         required: true
         default: "Standard_E8_v3"
 
       sshUserPw:
-        displayname: SSH user password
         description: The SSH user password
         required: true
         default: "CPJSchulung2022"
 
       ZIPPASS:
-        displayname: ZIP password
         description: The ZIP password
         required: true
         default: "cpjsecretpassword"
@@ -99,7 +89,7 @@ jobs:
           ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
           STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
-        - run: |
+        run: |
           #!/bin/bash
           set -e
           set -x
@@ -142,5 +132,4 @@ jobs:
                   hashicorp/terraform:latest \
                       $TF_ACTION \
                       $TF_OPTIONS
-
-        workingDirectory: 'infrastructureAsCode'
+        working-directory: 'infrastructureAsCode'
