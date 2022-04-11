@@ -85,7 +85,7 @@ jobs:
             -e "TF_VAR_clientid=${{ env.TF_VAR_clientid }}" \
             -e "TF_VAR_clientsecret=${{ env.TF_VAR_clientsecret }}" \
             -e "TF_VAR_rsgcommon=${{ env.TF_VAR_rsgcommon }}" \
-            -e "TF_VAR_sshuserpw=${{ env.SSHUSERPW }}" \
+            -e "TF_VAR_sshUserPw=${{ env.SSHUSERPW }}" \
             -v "$(pwd)"/:/workspace \
             -w /workspace \
             hashicorp/terraform:latest \
