@@ -64,42 +64,31 @@ jobs:
 
         run: |
           #!/bin/bash
-          set -e
-          set -x
-
-          # if [ -z "$TF_VAR_labname" ] ;
-          # then
-          #     echo "environmentname is unset" ;
-          #     exit 1;
-          # fi
-
-          # if [[ $TF_ACTION != "plan" ]];then
-          #   TF_OPTIONS="--auto-approve"
-          # fi
+          set -xe
 
           docker run \
                   -v "$(pwd)"/:/workspace \
                   -w /workspace \
                   hashicorp/terraform:latest \
                       init \
-                          -backend-config="key=${TF_VAR_labname}-components.tfstate" \
-                          -backend-config="access_key=$(STATE_BLOBACCESSKEY)" \
-                          -backend-config=storage_account_name="${STATE_SAACCOUNTNAME}"
+                          -backend-config="key=$TF_VAR_labname-components.tfstate" \
+                          -backend-config="access_key=$STATE_BLOBACCESSKEY" \
+                          -backend-config=storage_account_name="$STATE_SAACCOUNTNAME"
 
           docker run \
-                  -e ARM_SUBSCRIPTION_ID=$(ARM_SUBSCRIPTION_ID) \
-                  -e ARM_CLIENT_ID=$(ARM_CLIENT_ID) \
-                  -e ARM_CLIENT_SECRET=$(ARM_CLIENT_SECRET) \
-                  -e ARM_TENANT_ID=$(ARM_TENANT_ID) \
-                  -e STATE_BLOBACCESSKEY=$(STATE_BLOBACCESSKEY) \
+                  -e ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID \
+                  -e ARM_CLIENT_ID=$ARM_CLIENT_ID \
+                  -e ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET \
+                  -e ARM_TENANT_ID=$ARM_TENANT_ID \
+                  -e STATE_BLOBACCESSKEY=$STATE_BLOBACCESSKEY \
                   -e TF_VAR_labname=$TF_VAR_labname \
                   -e TF_VAR_location=$TF_VAR_location \
                   -e TF_VAR_labNumberParticipants=$TF_VAR_labNumberParticipants \
                   -e TF_VAR_vmSizeAks=$TF_VAR_vmSizeAks \
                   -e TF_VAR_nodecount=$TF_VAR_nodecount \
-                  -e TF_VAR_clientid=$(ARM_CLIENT_ID) \
-                  -e TF_VAR_clientsecret=$(ARM_CLIENT_SECRET) \        
-                  -e TF_VAR_rsgcommon=$(rsgcommon) \
+                  -e TF_VAR_clientid=$ARM_CLIENT_ID \
+                  -e TF_VAR_clientsecret=$ARM_CLIENT_SECRET \        
+                  -e TF_VAR_rsgcommon=$rsgcommon \
                   -v "$(pwd)"/:/workspace \
                   -w /workspace \
                   hashicorp/terraform:latest \
