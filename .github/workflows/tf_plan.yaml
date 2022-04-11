@@ -24,10 +24,10 @@ on:
         required: true
         default: "Standard_E8_v3"
 
-  push:
-    branches:
-      - main
-      - actions
+  # push:
+  #   branches:
+  #     - main
+  #     - actions
 
 jobs:
   build:
