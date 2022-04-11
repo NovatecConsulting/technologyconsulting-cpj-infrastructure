@@ -89,7 +89,7 @@ jobs:
             -e TF_VAR_nodecount=${{ env.TF_VAR_nodecount }} \
             -e TF_VAR_clientid=${{ env.ARM_CLIENT_ID }} \
             -e TF_VAR_clientsecret=${{ env.ARM_CLIENT_SECRET }} \        
-            -e TF_VAR_rsgcommon=${{ env.rsgcommon }} \
+            -e TF_VAR_rsgcommon=${{ env.RSGCOMMON }} \
             -v "$(pwd)"/:/workspace \
             -w /workspace \
             hashicorp/terraform:latest \
