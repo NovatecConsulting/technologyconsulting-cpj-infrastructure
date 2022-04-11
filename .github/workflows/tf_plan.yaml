@@ -77,6 +77,15 @@ jobs:
                     -backend-config=storage_account_name="${{ env.STATE_SAACCOUNTNAME }}"
 
           docker run \
+            -e TF_VAR_labname=${{ env.TF_VAR_labname }} \
+            -e TF_VAR_location=${{ env.TF_VAR_location }} \
+            -e TF_VAR_labNumberParticipants=${{ env.TF_VAR_labNumberParticipants }} \
+            -e TF_VAR_vmSizeAks=${{ env.TF_VAR_vmSizeAks }} \
+            -e TF_VAR_nodecount=${{ env.TF_VAR_nodecount }} \
+            -e TF_VAR_clientid=${{ env.ARM_CLIENT_ID }} \
+            -e TF_VAR_clientsecret=${{ env.ARM_CLIENT_SECRET }} \        
+            -e TF_VAR_rsgcommon=${{ env.RSGCOMMON }} \
+            -e TF_VAR_sshUserPW=${{ env.SSHUSERPW }} \
             -v "$(pwd)"/:/workspace \
             -w /workspace \
             hashicorp/terraform:latest \
