@@ -54,6 +54,7 @@ jobs:
           ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
           STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
+          STATE_SAACCOUNTNAME: ${{ secrets.STATE_SAACCOUNTNAME }}
 
           ZIPPASS: ${{ secrets.ZIPPASS }}
           SSHUSERPW: ${{ secrets.SSHUSERPW }}
@@ -71,24 +72,24 @@ jobs:
                   -w /workspace \
                   hashicorp/terraform:latest \
                       init \
-                          -backend-config="key=$TF_VAR_labname-components.tfstate" \
-                          -backend-config="access_key=$STATE_BLOBACCESSKEY" \
-                          -backend-config=storage_account_name="$STATE_SAACCOUNTNAME"
+                          -backend-config="key=${{ env.TF_VAR_labname }}-components.tfstate" \
+                          -backend-config="access_key=${{ env.STATE_BLOBACCESSKEY }}" \
+                          -backend-config=storage_account_name="${{ env.STATE_SAACCOUNTNAME }}"
 
           docker run \
-                  -e ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID \
-                  -e ARM_CLIENT_ID=$ARM_CLIENT_ID \
-                  -e ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET \
-                  -e ARM_TENANT_ID=$ARM_TENANT_ID \
-                  -e STATE_BLOBACCESSKEY=$STATE_BLOBACCESSKEY \
-                  -e TF_VAR_labname=$TF_VAR_labname \
-                  -e TF_VAR_location=$TF_VAR_location \
-                  -e TF_VAR_labNumberParticipants=$TF_VAR_labNumberParticipants \
-                  -e TF_VAR_vmSizeAks=$TF_VAR_vmSizeAks \
-                  -e TF_VAR_nodecount=$TF_VAR_nodecount \
-                  -e TF_VAR_clientid=$ARM_CLIENT_ID \
-                  -e TF_VAR_clientsecret=$ARM_CLIENT_SECRET \        
-                  -e TF_VAR_rsgcommon=$rsgcommon \
+                  -e ARM_SUBSCRIPTION_ID=${{ env.ARM_SUBSCRIPTION_ID }} \
+                  -e ARM_CLIENT_ID=${{ env.ARM_CLIENT_ID }} \
+                  -e ARM_CLIENT_SECRET=${{ env.ARM_CLIENT_SECRET }} \
+                  -e ARM_TENANT_ID=${{ env.ARM_TENANT_ID }} \
+                  -e STATE_BLOBACCESSKEY=${{ env.STATE_BLOBACCESSKEY }} \
+                  -e TF_VAR_labname=${{ env.TF_VAR_labname }} \
+                  -e TF_VAR_location=${{ env.TF_VAR_location }} \
+                  -e TF_VAR_labNumberParticipants=${{ env.TF_VAR_labNumberParticipants }} \
+                  -e TF_VAR_vmSizeAks=${{ env.TF_VAR_vmSizeAks }} \
+                  -e TF_VAR_nodecount=${{ env.TF_VAR_nodecount }} \
+                  -e TF_VAR_clientid=${{ env.ARM_CLIENT_ID }} \
+                  -e TF_VAR_clientsecret=${{ env.ARM_CLIENT_SECRET }} \        
+                  -e TF_VAR_rsgcommon=${{ env.rsgcommon }} \
                   -v "$(pwd)"/:/workspace \
                   -w /workspace \
                   hashicorp/terraform:latest \
