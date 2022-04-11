@@ -99,6 +99,8 @@ jobs:
         working-directory: 'infrastructureAsCode'
 
   terraform_apply:
+    needs:
+      - terraform_plan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
