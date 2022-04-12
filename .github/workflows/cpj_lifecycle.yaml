@@ -19,9 +19,9 @@ on:
       choice:
         required: true
         type: choice
-        description: The stages to run (defaults to all)
+        description: The stages to run (defaults to provision)
         options:
-          - "create"
+          - "provision"
           - "destroy"
 
       destroy:
@@ -32,6 +32,8 @@ on:
 
 jobs:
   terraform_plan_and_apply:
+    if: github.event.inputs.choice == 'provision' && github.event.inputs.destroy == 0
+
     runs-on: ubuntu-latest
 
     env:
