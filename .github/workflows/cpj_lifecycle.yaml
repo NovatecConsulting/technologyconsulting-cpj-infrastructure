@@ -32,7 +32,7 @@ on:
 
 jobs:
   terraform_plan_and_apply:
-    if: "${{ github.event.inputs.choice == 'provision' && github.event.inputs.destroy == 'false' }}"
+   # if: "${{ github.event.inputs.choice == 'provision' && github.event.inputs.destroy == 'false' }}"
 
     runs-on: ubuntu-latest
 
@@ -58,6 +58,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Terraform plan
+        if: "${{ github.event.inputs.choice == 'provision' && github.event.inputs.destroy == 'false' }}"
         env:
           TF_ACTION: 'plan'
         run: |
@@ -95,6 +96,7 @@ jobs:
         working-directory: 'infrastructureAsCode'
 
       - name: Terraform apply
+        if: "${{ github.event.inputs.choice == 'provision' && github.event.inputs.destroy == 'false' }}"
         env:
           TF_ACTION: 'apply'
           TF_OPTIONS: '--auto-approve'
