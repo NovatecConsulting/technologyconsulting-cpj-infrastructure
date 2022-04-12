@@ -32,7 +32,7 @@ on:
 
 jobs:
   terraform_plan_and_apply:
-    if: ${{ github.event.inputs.choice == 'provision' && github.event.inputs.destroy == 0 }}
+    if: "${{ github.event.inputs.choice == 'provision' && github.event.inputs.destroy == false }}"
 
     runs-on: ubuntu-latest
 
