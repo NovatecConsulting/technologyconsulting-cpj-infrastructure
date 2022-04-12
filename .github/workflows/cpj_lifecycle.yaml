@@ -235,7 +235,7 @@ jobs:
             hashicorp/terraform:latest \
                 init \
                     -backend-config="key=${{ env.TF_VAR_labname }}-components.tfstate" \
-                    -backend-config="access_key=${{ env.TF_VAR_STATE_BLOBACCESS
+                    -backend-config="access_key=${{ env.TF_VAR_STATE_BLOBACCESS }}" \
                     -backend-config=storage_account_name="${{ env.TF_VAR_STATE_SAACCOUNTNAME }}"
 
           docker run \
