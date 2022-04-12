@@ -205,6 +205,24 @@ jobs:
 
     if: "${{ github.event.inputs.choice == 'destroy' && github.event.inputs.destroy == 'true' }}"
     runs-on: ubuntu-latest
+
+    env:
+      TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
+      TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
+      TF_VAR_nodecount: ${{ github.event.inputs.nodeCount || '3'}}
+
+      TF_VAR_vmSizeAks: 'Standard_E8_v3'
+      TF_VAR_rsgcommon: 'cloudacademy-common'
+      TF_VAR_location: 'westeurope'
+      TF_VAR_sshUserPw: 'CPJSchulung2022'
+      
+      TF_VAR_ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      TF_VAR_ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      TF_VAR_ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
+      TF_VAR_STATE_SAACCOUNTNAME: 'cloudacademyiacstate'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
