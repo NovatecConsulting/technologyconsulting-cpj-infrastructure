@@ -16,23 +16,22 @@ on:
         description: The number of nodes to create (defaults to 3)
         required: false
 
-      destroy:
-        description: Destroy the lab? (defaults to false)
-        type: boolean
-        required: false
-
-      auswahl:
+      choice:
         required: true
         type: choice
         description: The stages to run (defaults to all)
         options:
           - "create"
           - "destroy"
-          - "all"
+
+      destroy:
+        description: Destroy the lab? (defaults to false)
+        type: boolean
+        required: false
 
 
 jobs:
-  terraform_plan:
+  terraform_plan_and_apply:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -197,8 +196,9 @@ jobs:
   #       working-directory: 'infrastructureAsCode'
   
   terraform_destroy:
-    needs:
-      - terraform_apply
+#    needs: terraform_plan_and_apply
+
+    if: github.event.inputs.choice == 'destroy' && github.event.inputs.destroy == 1
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
