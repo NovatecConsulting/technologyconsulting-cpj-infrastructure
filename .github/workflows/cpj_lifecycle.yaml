@@ -33,31 +33,31 @@ on:
 jobs:
   terraform_plan_and_apply:
     runs-on: ubuntu-latest
+
+    env:
+      TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
+      TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
+      TF_VAR_nodecount: ${{ github.event.inputs.nodeCount || '3'}}
+
+      TF_VAR_vmSizeAks: 'Standard_E8_v3'
+      TF_VAR_rsgcommon: 'cloudacademy-common'
+      TF_VAR_location: 'westeurope'
+      TF_VAR_sshUserPw: 'CPJSchulung2022'
+      
+      TF_VAR_ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      TF_VAR_ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      TF_VAR_ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
+      TF_VAR_STATE_SAACCOUNTNAME: 'cloudacademyiacstate'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Terraform plan
-
         env:
           TF_ACTION: 'plan'
-
-          TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
-          TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
-          TF_VAR_nodecount: ${{ github.event.inputs.nodeCount || '3'}}
-
-          TF_VAR_vmSizeAks: 'Standard_E8_v3'
-          TF_VAR_rsgcommon: 'cloudacademy-common'
-          TF_VAR_location: 'westeurope'
-          TF_VAR_sshUserPw: 'CPJSchulung2022'
-          
-          TF_VAR_ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          TF_VAR_ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-          TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-          TF_VAR_ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-          TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
-          TF_VAR_STATE_SAACCOUNTNAME: 'cloudacademyiacstate'
-
         run: |
           #!/bin/bash
           set -xe
@@ -91,7 +91,7 @@ jobs:
             hashicorp/terraform:latest \
               ${{ env.TF_ACTION }} \
         working-directory: 'infrastructureAsCode'
-                      
+
       - name: Terraform apply
         env:
           TF_ACTION: 'apply'
@@ -209,23 +209,6 @@ jobs:
         env:
           TF_ACTION: 'destroy'
           TF_OPTIONS: '--auto-approve'
-
-          TF_VAR_labname: ${{ github.event.inputs.labName }}
-          TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants }}
-          TF_VAR_nodecount: ${{ github.event.inputs.nodeCount }}
-
-          TF_VAR_vmSizeAks: 'Standard_E8_v3'
-          TF_VAR_rsgcommon: 'cloudacademy-common'
-          TF_VAR_location: 'westeurope'
-          TF_VAR_sshUserPw: 'CPJSchulung2022'
-          
-          TF_VAR_ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          TF_VAR_ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-          TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-          TF_VAR_ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-          TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
-          TF_VAR_STATE_SAACCOUNTNAME: 'cloudacademyiacstate'
-
         run: |
           #!/bin/bash
           set -xe
