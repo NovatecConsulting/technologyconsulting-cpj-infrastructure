@@ -90,7 +90,8 @@ jobs:
             -w /workspace \
             hashicorp/terraform:latest \
               ${{ env.TF_ACTION }} \
-              
+        working-directory: 'infrastructureAsCode'
+                      
       - name: Terraform apply
         env:
           TF_ACTION: 'apply'
