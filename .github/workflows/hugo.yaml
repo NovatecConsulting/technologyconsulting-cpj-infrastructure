@@ -51,8 +51,6 @@ env:
 jobs:
   hosting:
 
-    needs: terraform
-
     runs-on: ubuntu-latest
 
     if: "${{ github.event.inputs.choice == 'provision' && github.event.inputs.destroy == 'false' }}"
