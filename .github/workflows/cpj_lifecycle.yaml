@@ -196,7 +196,7 @@ jobs:
           sudo dpkg -i hugo_extended_${{ env.hugoVersion }}_Linux-64bit.deb
 
       - name: Azure Login
-        uses: actions/azure-login@v1
+        uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
