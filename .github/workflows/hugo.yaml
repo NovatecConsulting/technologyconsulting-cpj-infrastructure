@@ -76,6 +76,7 @@ jobs:
         with:
           repository: NovatecConsulting/technologyconsulting-cpj-excercises
           ref: 'master'
+          token: ${{ secrets.GH_PAT }}
           path: './hugo'
 
       # - name: Azure CLI script
