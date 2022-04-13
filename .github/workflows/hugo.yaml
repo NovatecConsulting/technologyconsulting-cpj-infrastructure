@@ -77,17 +77,19 @@ jobs:
           repo: NovatecConsulting/technologyconsulting-cpj-excercises
           path: './hugo'
 
-      - name: Azure CLI script
-        uses: azure/CLI@v1
-        with:
-          azcliversion: 2.30.0
-          inlineScript: |
-            az extension add --name storage-preview
-            az storage blob service-properties update \
-            --account-name "${TF_VAR_labname}materials" \
-            --static-website \
-            --404-document 404.html \
-            --index-document index.html
+      # - name: Azure CLI script
+      #   uses: azure/CLI@v1
+      #   with:
+      #     azcliversion: 2.30.0
+      #     inlineScript: |
+      #       az account show
+      #       az storage -h
+      #       az extension add --name storage-preview
+      #       az storage blob service-properties update \
+      #       --account-name "${TF_VAR_labname}materials" \
+      #       --static-website \
+      #       --404-document 404.html \
+      #       --index-document index.html
 
       - name: Hugo Provisioning
 
