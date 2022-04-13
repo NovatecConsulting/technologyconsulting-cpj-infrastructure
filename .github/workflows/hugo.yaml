@@ -63,6 +63,14 @@ jobs:
           # azure_client_secret: "${{ env.TF_VAR_ARM_CLIENT_SECRET }}"
           # azure_tenant_id: "${{ env.TF_VAR_ARM_TENANT_ID }}"
 
+      - name: Azure CLI script
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az account show
+            az storage -h
+
 
 
       - name: Azure Storage Account
