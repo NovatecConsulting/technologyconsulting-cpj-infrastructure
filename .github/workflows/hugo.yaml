@@ -58,10 +58,6 @@ jobs:
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-          # azure_subscription_id: "${{ env.TF_VAR_ARM_SUBSCRIPTION_ID }}"
-          # azure_client_id: "${{ env.TF_VAR_ARM_CLIENT_ID }}"
-          # azure_client_secret: "${{ env.TF_VAR_ARM_CLIENT_SECRET }}"
-          # azure_tenant_id: "${{ env.TF_VAR_ARM_TENANT_ID }}"
 
       - name: Azure CLI script
         uses: azure/CLI@v1
