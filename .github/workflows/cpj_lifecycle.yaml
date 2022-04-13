@@ -32,6 +32,9 @@ on:
 env:
   TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
 
+  hugoVersion: '0.76.1'
+  ZIPPASS: 'cpjsecretpassword'
+
 jobs:
   terraform:
 
@@ -201,12 +204,14 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Checkout excercises
-        uses: actions/checkout@v3
+        uses: actions/checkout@master
         with:
-          repo: NovatecConsulting/technologyconsulting-cpj-excercises
+          repository: NovatecConsulting/technologyconsulting-cpj-excercises
+          ref: 'main'
+          token: ${{ secrets.GH_PAT }}
           path: './hugo'
 
-      - name: Hugo Provisioning
+      - name: Hugo
 
         run: |
           #!/bin/bash
@@ -214,21 +219,21 @@ jobs:
 
           az extension add --name storage-preview
           az storage blob service-properties update \
-            --account-name "${TF_VAR_labname}materials" \
+            --account-name "${{ env.TF_VAR_labname }}materials" \
             --static-website \
             --404-document 404.html \
             --index-document index.html
 
           cd ./hugo
-          
+        
           pwd
           echo 'add Pod-Service data into hugofiles'
 
           echo "<h2>IP Addressen</h2>" >> content/_index.md
 
-          AKSNAME="${TF_VAR_labname}aks"
+          AKSNAME="${{ env.TF_VAR_labname }}aks"
 
-          az aks get-credentials -g ${TF_VAR_labname} -n $AKSNAME
+          az aks get-credentials -g ${{ env.TF_VAR_labname }} -n $AKSNAME
 
           echo "Get Participant Pods Service IPs"
 
@@ -278,9 +283,10 @@ jobs:
           ls CPJ/
 
           echo "zip pass var is:"
-          echo ${ZIPPASS}
-          zip -rP ${ZIPPASS} cloud_platform_journey-materials.zip CPJ/
+          echo ${{ env.ZIPPASS }}
+          zip -rP ${{ env.ZIPPASS }} cloud_platform_journey-materials.zip CPJ/
           cp cloud_platform_journey-materials.zip content/_index.files/
           sudo hugo --log -v
           ls public/
-          az storage blob upload-batch -d \$web -s ./public --account-name "${TF_VAR_labname}materials" --source . --destination "CPJ"
+          az storage blob upload-batch -d \$web -s ./public --account-name "${{ env.TF_VAR_labname }}materials"
+          # --source . --destination "CPJ"
