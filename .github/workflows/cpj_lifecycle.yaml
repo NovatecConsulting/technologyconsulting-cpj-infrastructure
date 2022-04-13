@@ -284,9 +284,3 @@ jobs:
           sudo hugo --log -v
           ls public/
           az storage blob upload-batch -d \$web -s ./public --account-name "${TF_VAR_labname}materials" --source . --destination "CPJ"
-
-  provision:
-
-    needs: terraform
-
-    runs-on: ubuntu-latest
