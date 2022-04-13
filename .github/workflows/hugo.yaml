@@ -172,5 +172,6 @@ jobs:
           cp cloud_platform_journey-materials.zip content/_index.files/
           sudo hugo --log -v
           ls public/
-          az storage blob upload-batch -d \$web -s ./public --account-name "${{ env.TF_VAR_labname }}materials" --source . --destination "CPJ"
+          az storage blob upload-batch -d \$web -s ./public --account-name "${{ env.TF_VAR_labname }}materials"
+          # --source . --destination "CPJ"
           
