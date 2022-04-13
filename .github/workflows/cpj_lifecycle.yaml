@@ -178,6 +178,8 @@ jobs:
 
   hosting:
 
+    needs: terraform
+
     runs-on: ubuntu-latest
 
     if: "${{ github.event.inputs.choice == 'provision' && github.event.inputs.destroy == 'false' }}"
@@ -284,5 +286,7 @@ jobs:
           az storage blob upload-batch -d \$web -s ./public --account-name "${TF_VAR_labname}materials" --source . --destination "CPJ"
 
   provision:
+
+    needs: terraform
 
     runs-on: ubuntu-latest
