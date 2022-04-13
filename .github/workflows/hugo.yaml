@@ -57,10 +57,13 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          azure_subscription_id: "${{ env.TF_VAR_ARM_SUBSCRIPTION_ID }}"
-          azure_client_id: "${{ env.TF_VAR_ARM_CLIENT_ID }}"
-          azure_client_secret: "${{ env.TF_VAR_ARM_CLIENT_SECRET }}"
-          azure_tenant_id: "${{ env.TF_VAR_ARM_TENANT_ID }}"
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          # azure_subscription_id: "${{ env.TF_VAR_ARM_SUBSCRIPTION_ID }}"
+          # azure_client_id: "${{ env.TF_VAR_ARM_CLIENT_ID }}"
+          # azure_client_secret: "${{ env.TF_VAR_ARM_CLIENT_SECRET }}"
+          # azure_tenant_id: "${{ env.TF_VAR_ARM_TENANT_ID }}"
+
+
 
       - name: Azure Storage Account
         if: "${{ github.event.inputs.choice == 'provision' && github.event.inputs.destroy == 'false' }}"
