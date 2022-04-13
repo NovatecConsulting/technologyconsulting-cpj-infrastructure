@@ -74,7 +74,7 @@ jobs:
       - name: Checkout excercises
         uses: actions/checkout@v3
         with:
-          repo: NovatecConsulting/technologyconsulting-cpj-excercises
+          repository: NovatecConsulting/technologyconsulting-cpj-excercises
           path: './hugo'
 
       # - name: Azure CLI script
@@ -104,7 +104,7 @@ jobs:
           #   --404-document 404.html \
           #   --index-document index.html
 
-          cd ./hugo/technologyconsulting-cpj-excercises
+          cd ./hugo
         
           pwd
           echo 'add Pod-Service data into hugofiles'
