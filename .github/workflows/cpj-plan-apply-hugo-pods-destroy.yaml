@@ -35,7 +35,7 @@ env:
 
 jobs:
   terraform-plan:
-    uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/terraform-reusable.yaml@main
+    uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/cpj-terraform-reusable.yaml@main
     with:
       TF_ACTION: 'plan'
       TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
@@ -47,7 +47,7 @@ jobs:
 
   terraform-apply:
     needs: terraform-plan
-    uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/terraform-reusable.yaml@main
+    uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/cpj-terraform-reusable.yaml@main
     with:
       TF_ACTION: 'apply'
       TF_OPTIONS: '-auto-approve'
@@ -60,7 +60,7 @@ jobs:
     
   # terraform-destroy:
   #   needs: [terraform-apply, configure-participant-pods, hugo-hosting]
-  #   uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/terraform-reusable.yaml@main
+  #   uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/cpj-terraform-reusable.yaml@main
   #   with:
   #     environment: 'tf-destroy'
   #     TF_ACTION: 'destroy'
