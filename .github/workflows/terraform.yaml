@@ -127,13 +127,13 @@ jobs:
         working-directory: 'infrastructureAsCode'
 
       - name: Azure Login
-        if: "{{ inputs.TF_ACTION == 'destroy' }}"
+        if: "${{ inputs.TF_ACTION == 'destroy' }}"
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Azure CLI script
-        if: "{{ inputs.TF_ACTION == 'destroy' }}"
+        if: "${{ inputs.TF_ACTION == 'destroy' }}"
         uses: azure/CLI@v1
         env: 
           blob: '${{ inputs.TF_VAR_labname }}-components.tfstate'
