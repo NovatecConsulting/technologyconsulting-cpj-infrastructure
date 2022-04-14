@@ -78,6 +78,8 @@ on:
         required: false
       TF_VAR_STATE_BLOBACCESSKEY:
         required: false
+      AZURE_CREDENTIALS:
+        required: false
 
 
     
