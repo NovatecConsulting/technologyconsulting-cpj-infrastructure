@@ -59,7 +59,7 @@ jobs:
       TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
     
   terraform-destroy:
-    needs: terraform-plan
+    needs: [terraform-apply, configure-participant-pods]
     uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/terraform.yaml@main
     with:
       environment: 'tf-destroy'
