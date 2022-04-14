@@ -132,9 +132,6 @@ jobs:
         ENDPOINT="$(kubectl config view -o jsonpath="{.clusters[?(@.name == \"${CLUSTER_NAME}\")].cluster.server}")"
         printf "$ENDPOINT \n"
 
-
-
-        mkdir participant-pod
         for ((c = 0; c < $TF_VAR_labNumberParticipants; c++)); do
           echo "Iteration: $c"
 
