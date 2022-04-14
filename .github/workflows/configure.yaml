@@ -73,7 +73,6 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: executing shell script
-      working-directory: 'infrastructureAsCode'
       run: |
         #!/bin/bash
         set -xe
@@ -187,3 +186,4 @@ jobs:
           kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(echo  $'\nKUBECONFIG=${USER_NOVATEC_DIR}/.kube/config' >> "${USER_NOVATEC_DIR}/.bashrc")"
 
         done
+      working-directory: 'infrastructureAsCode'
