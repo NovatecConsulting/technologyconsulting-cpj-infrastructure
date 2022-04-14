@@ -31,31 +31,53 @@ on:
 
 env:
   TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
+  TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
+  TF_VAR_nodecount: ${{ github.event.inputs.nodeCount || '3'}}
 
+  TF_VAR_vmSizeAks: 'Standard_E8_v3'
+  TF_VAR_rsgcommon: 'cloudacademy-common'
+  TF_VAR_location: 'westeurope'
+  TF_VAR_sshUserPw: 'CPJSchulung2022'
+  
+  TF_VAR_ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  TF_VAR_ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+  TF_VAR_ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+  TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
+  TF_VAR_STATE_SAACCOUNTNAME: 'cloudacademyiacstate'
+
+  # provision hosting
   hugoVersion: '0.76.1'
   ZIPPASS: 'cpjsecretpassword'
+
+  # configure Participant-Pods
+  AKSNAME: ${{ env.TF_VAR_labname }}aks'
+  TF_VAR_participantPodName: 'participant-pod-statefulset'
+  TF_VAR_participantPodLabel: 'participant-pod'
+  TF_VAR_participantPodNamespaceName: 'user'
+  TF_VAR_participantPodDockerUser: 'novatec'
 
 jobs:
   terraform:
 
     runs-on: ubuntu-latest
 
-    env:
+    # env:
       #TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
-      TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
-      TF_VAR_nodecount: ${{ github.event.inputs.nodeCount || '3'}}
+      # TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
+      # TF_VAR_nodecount: ${{ github.event.inputs.nodeCount || '3'}}
 
-      TF_VAR_vmSizeAks: 'Standard_E8_v3'
-      TF_VAR_rsgcommon: 'cloudacademy-common'
-      TF_VAR_location: 'westeurope'
-      TF_VAR_sshUserPw: 'CPJSchulung2022'
+      # TF_VAR_vmSizeAks: 'Standard_E8_v3'
+      # TF_VAR_rsgcommon: 'cloudacademy-common'
+      # TF_VAR_location: 'westeurope'
+      # TF_VAR_sshUserPw: 'CPJSchulung2022'
       
-      TF_VAR_ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      TF_VAR_ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      TF_VAR_ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-      TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
-      TF_VAR_STATE_SAACCOUNTNAME: 'cloudacademyiacstate'
+      # TF_VAR_ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      # TF_VAR_ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      # TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      # TF_VAR_ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      # TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
+      # TF_VAR_STATE_SAACCOUNTNAME: 'cloudacademyiacstate'
 
     steps:
       - name: Checkout code
@@ -180,6 +202,7 @@ jobs:
         working-directory: 'infrastructureAsCode'
 
   hosting:
+  
 
     needs: terraform
 
@@ -217,12 +240,12 @@ jobs:
           #!/bin/bash
           set -xe
 
-          az extension add --name storage-preview
-          az storage blob service-properties update \
-            --account-name "${{ env.TF_VAR_labname }}materials" \
-            --static-website \
-            --404-document 404.html \
-            --index-document index.html
+          # az extension add --name storage-preview
+          # az storage blob service-properties update \
+          #   --account-name "${{ env.TF_VAR_labname }}materials" \
+          #   --static-website \
+          #   --404-document 404.html \
+          #   --index-document index.html
 
           cd ./hugo
         
@@ -288,5 +311,137 @@ jobs:
           cp cloud_platform_journey-materials.zip content/_index.files/
           sudo hugo --log -v
           ls public/
-          az storage blob upload-batch -d \$web -s ./public --account-name "${{ env.TF_VAR_labname }}materials"
-          # --source . --destination "CPJ"
+
+      - name: Azure CLI script
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az extension add --name storage-preview
+            az storage blob service-properties update \
+              --account-name "${{ env.TF_VAR_labname }}materials" \
+              --static-website \
+              --404-document 404.html \
+              --index-document index.html
+            az storage blob upload-batch -d \$web -s ./public --account-name "${{ env.TF_VAR_labname }}materials"
+
+  configure:
+    needs: terraform
+    runs-on: ubuntu-latest
+    if: "${{ github.event.inputs.choice == 'provision' && github.event.inputs.destroy == 'false' }}"
+
+    steps:
+    - name: executing shell script
+      run: |
+        #!/bin/bash
+        set -xe
+
+        AKSNAME                             = "${{ env.TF_VAR_labname }}aks"
+        TF_VAR_labname                      = "${{ env.TF_VAR_labname }}"
+        TF_VAR_sshUserPw                    = "${{ env.TF_VAR_sshUserPw }}"
+        TF_VAR_labNumberParticipants        = "${{ env.TF_VAR_labNumberParticipants }}"
+        TF_VAR_participantPodName           = "${{ env.TF_VAR_participantPodName }}"
+        TF_VAR_participantPodLabel          = "${{ env.TF_VAR_participantPodLabel }}"
+        TF_VAR_participantPodNamespaceName  = "${{ env.TF_VAR_participantPodNamespaceName }}"
+        TF_VAR_participantPodDockerUser     = "${{ env.TF_VAR_participantPodDockerUser }}"
+
+
+
+
+        az aks get-credentials -g ${TF_VAR_labname} -n $AKSNAME
+
+        echo "Configure Kubectl in Participant Pods"
+
+        kubectl get pods
+
+        echo "Testing Sysbox-Daemonset"
+        until kubectl get daemonsets sysbox-deploy-k8s -n kube-system -o jsonpath="{.status.numberReady}" | grep -v --silent 0; do
+          kubectl describe daemonsets sysbox-deploy-k8s -n kube-system
+          kubectl get daemonsets sysbox-deploy-k8s -n kube-system
+
+          date
+          echo "No Worker-Node with Sysbox-Daemonset ready. Waiting 30s"
+          sleep 30
+        done
+        echo "Testing Sysbox-Daemonset Success"
+
+        echo "Testing Participant-Pod"
+        until kubectl get statefulSets $TF_VAR_participantPodName -o jsonpath="{.status.readyReplicas}" | grep -q $TF_VAR_labNumberParticipants; do
+          kubectl get statefulSets $TF_VAR_participantPodName -o jsonpath="{.status.readyReplicas}" | grep -v 0
+          kubectl get pods
+
+          date
+          echo "Not all Participant-Pod are ready. Waiting 10s"
+          sleep 10
+        done
+        echo "Testing Participant-Pod Success"
+
+        echo "Configure Participant-Pod"
+
+        USER_NOVATEC_DIR=home/$TF_VAR_participantPodDockerUser
+        USER_ROOT_DIR=/root
+
+        CONTEXT="$(kubectl config current-context)"
+        printf "$CONTEXT \n"
+
+        CLUSTER_NAME="$(kubectl config get-contexts "$CONTEXT" | awk '{print $3}' | tail -n 1)"
+        printf "$CLUSTER_NAME \n"
+
+        ENDPOINT="$(kubectl config view -o jsonpath="{.clusters[?(@.name == \"${CLUSTER_NAME}\")].cluster.server}")"
+        printf "$ENDPOINT \n"
+
+        for ((c = 0; c < $TF_VAR_labNumberParticipants; c++)); do
+          echo "Iteration: $c"
+
+          printf "\nInnerhalb des Pods '$TF_VAR_participantPodName-$c' das Kubernetes Cluster konfigurieren, sodass der Pod über kubectl darauf zugreifen kann... \n"
+
+          SERVICE_ACCOUNT_NAME=$TF_VAR_participantPodNamespaceName-$c-sa
+          printf "$SERVICE_ACCOUNT_NAME \n"
+
+          NAMESPACE=$TF_VAR_participantPodNamespaceName-$c
+          printf "$NAMESPACE \n"
+
+          SECRET_NAME="$(kubectl get sa $SERVICE_ACCOUNT_NAME --namespace=$NAMESPACE -o json | jq -r .secrets[].name)"
+          printf "$SECRET_NAME \n"
+
+          kubectl get secret --namespace=$NAMESPACE $SECRET_NAME -o json | jq -r '.data["ca.crt"]' | base64 -di > participant-pod/ca$c.crt
+
+          USER_TOKEN="$(kubectl get secret --namespace $NAMESPACE $SECRET_NAME -o json | jq -r '.data["token"]' | base64 -di)"
+          printf "$USER_TOKEN \n"
+
+
+          kubectl cp participant-pod/ca$c.crt $TF_VAR_participantPodName-$c:$USER_ROOT_DIR
+
+          rm participant-pod/ca$c.crt
+
+          kubectl cp participant-pod/example-deployments $TF_VAR_participantPodName-$c:$USER_ROOT_DIR
+          kubectl cp participant-pod/configs/.bashrc $TF_VAR_participantPodName-$c:$USER_ROOT_DIR
+
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(kubectl config set-cluster "${CLUSTER_NAME}" --server="${ENDPOINT}" --certificate-authority="${USER_ROOT_DIR}/ca${c}".crt --embed-certs=true)"
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(kubectl config set-credentials "${SERVICE_ACCOUNT_NAME}-${NAMESPACE}-${CLUSTER_NAME}" --token="${USER_TOKEN}")"
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(kubectl config set-context "${SERVICE_ACCOUNT_NAME}-${NAMESPACE}-${CLUSTER_NAME}" --cluster="${CLUSTER_NAME}" --user="${SERVICE_ACCOUNT_NAME}-${NAMESPACE}-${CLUSTER_NAME}" --namespace="${NAMESPACE}")"
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(kubectl config use-context "${SERVICE_ACCOUNT_NAME}-${NAMESPACE}-${CLUSTER_NAME}")"
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(echo  $'\nKUBECONFIG=${USER_ROOT_DIR}/.kube/config' >> "${USER_ROOT_DIR}"/.bashrc)"
+
+          echo "Configure Novatec-User \n"
+
+          kubectl cp participant-pod/example-deployments $TF_VAR_participantPodName-$c:$USER_NOVATEC_DIR
+          kubectl cp participant-pod/configs/.bash_profile $TF_VAR_participantPodName-$c:$USER_NOVATEC_DIR
+          kubectl cp participant-pod/configs/.bashrc $TF_VAR_participantPodName-$c:$USER_NOVATEC_DIR
+
+
+          # Change PW of Novatec-User
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(echo "${TF_VAR_participantPodDockerUser}:${TF_VAR_sshUserPw}" | chpasswd)"
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(mkdir -p ${USER_NOVATEC_DIR}/.kube)"
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(cp -r "${USER_ROOT_DIR}"/.kube/config "${USER_NOVATEC_DIR}"/.kube)"
+          # kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(chown -R $TF_VAR_participantPodDockerUser "${USER_NOVATEC_DIR}"/.kube/)"
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(echo  $'\nKUBECONFIG=${USER_NOVATEC_DIR}/.kube/config' >> "${USER_NOVATEC_DIR}/.bashrc")"
+
+        done
