@@ -66,6 +66,12 @@ jobs:
     if: "${{ github.event.inputs.choice == 'provision' && github.event.inputs.destroy == 'false' }}"
 
     steps:
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
     - name: executing shell script
       run: |
         #!/bin/bash
