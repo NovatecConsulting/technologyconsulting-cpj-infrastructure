@@ -59,7 +59,7 @@ jobs:
       TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
     
   terraform-destroy:
-    needs: [terraform-apply, configure-participant-pods]
+    needs: [terraform-apply, configure-participant-pods, hugo-hosting]
     uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/terraform.yaml@main
     with:
       environment: 'tf-destroy'
