@@ -16,7 +16,7 @@ on:
         type: string
 
 jobs:
-  start-or-stop:
+  cpj-destroy:
     runs-on: ubuntu-latest
     steps:
       - name: Azure Login
