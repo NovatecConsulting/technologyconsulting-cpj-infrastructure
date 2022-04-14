@@ -51,7 +51,7 @@ env:
   ZIPPASS: 'cpjsecretpassword'
 
   # configure Participant-Pods
-  AKSNAME: ${{ env.TF_VAR_labname }}aks'
+  AKSNAME: ${{ github.event.inputs.labName || 'mva' }}aks'
   TF_VAR_participantPodName: 'participant-pod-statefulset'
   TF_VAR_participantPodLabel: 'participant-pod'
   TF_VAR_participantPodNamespaceName: 'user'
