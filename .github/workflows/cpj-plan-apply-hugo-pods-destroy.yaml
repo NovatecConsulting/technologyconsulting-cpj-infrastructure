@@ -35,7 +35,7 @@ env:
 
 jobs:
   terraform-plan:
-    uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/terraform.yaml@main
+    uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/terraform-reusable.yaml@main
     with:
       TF_ACTION: 'plan'
       TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
@@ -47,7 +47,7 @@ jobs:
 
   terraform-apply:
     needs: terraform-plan
-    uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/terraform.yaml@main
+    uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/terraform-reusable.yaml@main
     with:
       TF_ACTION: 'apply'
       TF_OPTIONS: '-auto-approve'
@@ -60,7 +60,7 @@ jobs:
     
   # terraform-destroy:
   #   needs: [terraform-apply, configure-participant-pods, hugo-hosting]
-  #   uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/terraform.yaml@main
+  #   uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/terraform-reusable.yaml@main
   #   with:
   #     environment: 'tf-destroy'
   #     TF_ACTION: 'destroy'
@@ -104,14 +104,6 @@ jobs:
         run: |
           #!/bin/bash
           set -xe
-
-          # now part of terraform script
-          # az extension add --name storage-preview
-          # az storage blob service-properties update \
-          #   --account-name "${{ env.TF_VAR_labname }}materials" \
-          #   --static-website \
-          #   --404-document 404.html \
-          #   --index-document index.html
 
           cd ./hugo
         
