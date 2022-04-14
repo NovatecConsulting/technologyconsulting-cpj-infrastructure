@@ -13,7 +13,7 @@ on:
         type: string
         description: The action to perform (plan, apply, destroy)
       TF_OPTIONS:
-        required: true
+        required: false
         type: string
         description: The options to pass to the action
 
