@@ -1,0 +1,43 @@
+name: start-or-stop-lab
+
+on:
+  workflow_dispatch:
+    inputs:
+
+      labName:
+        description: The name of the lab (defaults to mva)
+        default: 'mva'
+        required: false
+
+      action:
+        type: choice
+        required: true
+        options: 
+        - start
+        - stop
+        description: "Start or Stop AKS Cluster?"
+
+jobs:
+  start-or-stop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Azure CLI script
+        if: "${{ github.event.inputs.action == 'start' }}"
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az aks start --name "${{ github.event.inputs.labname }}aks" --resource-group "${{ github.event.inputs.labname }}"
+
+      - name: Azure CLI script
+        if: "${{ github.event.inputs.action == 'stop' }}"
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az aks stop --name "${{ github.event.inputs.labname }}aks" --resource-group "${{ github.event.inputs.labname }}"
