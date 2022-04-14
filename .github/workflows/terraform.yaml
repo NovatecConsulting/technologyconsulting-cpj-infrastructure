@@ -1,0 +1,143 @@
+name: terraform
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: false
+        type: string
+        description: Used for tf-destroy approval/rejection in Slack.
+
+      TF_ACTION:
+        required: true
+        type: string
+        description: The action to perform (plan, apply, destroy)
+      TF_OPTIONS:
+        required: true
+        type: string
+        description: The options to pass to the action
+
+      TF_VAR_labname:
+        description: The name of the lab (defaults to mva)
+        required: false
+        default: mva
+        type: string
+      TF_VAR_labNumberParticipants:
+        description: The number of participants in the lab (defaults to 20)
+        required: false
+        default: 20
+        type: string
+      TF_VAR_nodecount:
+        description: The number of nodes to create (defaults to 3)
+        required: false
+        default: 3
+        type: string
+      TF_VAR_vmSizeAks:
+        description: The size of the nodes to create (defaults to Standard_E8_v3)
+        required: false
+        default: Standard_E8_v3
+        type: string
+      TF_VAR_rsgcommon:
+        description: The name of the common resource group (defaults to cloudacademy-common)
+        required: false
+        default: cloudacademy-common
+        type: string
+      TF_VAR_location:
+        description: The location of the lab (defaults to westeurope)
+        required: false
+        default: westeurope
+        type: string
+      TF_VAR_sshUserPw:
+        description: The password for the ssh user (defaults to CPJSchulung2022)
+        required: false
+        default: CPJSchulung2022
+        type: string
+      TF_VAR_STATE_SAACCOUNTNAME:
+        description: The name of the storage account (defaults to cloudacademyiacstate)
+        required: false
+        default: cloudacademyiacstate
+        type: string
+      TF_VAR_ARM_SUBSCRIPTION_ID:
+        description: The subscription id of the lab (defaults to 95352c54-cee5-4d25-a9a1-0857616d97e5)
+        required: false
+        default: 95352c54-cee5-4d25-a9a1-0857616d97e5
+        type: string
+      TF_VAR_ARM_CLIENT_ID:
+        description: The client id of the lab (defaults to bf7e4883-b5f5-4f94-9bae-768a3aa7618b)
+        required: false
+        default: bf7e4883-b5f5-4f94-9bae-768a3aa7618b
+        type: string
+      TF_VAR_ARM_TENANT_ID:
+        description: The tenant id of the lab (defaults to 837768d2-29f8-4c82-bd9c-ba95052b2c7f)
+        required: false
+        default: 837768d2-29f8-4c82-bd9c-ba95052b2c7f
+        type: string
+
+    secrets:
+      TF_VAR_ARM_CLIENT_SECRET:
+        required: false
+      TF_VAR_STATE_BLOBACCESSKEY:
+        required: false
+
+
+    
+jobs:
+  terraform:
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Terraform ${{ inputs.TF_ACTION }}
+        run: |
+          #!/bin/bash
+          set -xe
+
+          docker run \
+            -v "$(pwd)"/:/workspace \
+            -w /workspace \
+            hashicorp/terraform:latest \
+                init \
+                    -backend-config="key=${{ inputs.TF_VAR_labname }}-components.tfstate" \
+                    -backend-config="access_key=${{ secrets.TF_VAR_STATE_BLOBACCESSKEY }}" \
+                    -backend-config=storage_account_name="${{ inputs.TF_VAR_STATE_SAACCOUNTNAME }}"
+          
+          docker run \
+            -e "ARM_SUBSCRIPTION_ID=${{ inputs.TF_VAR_ARM_SUBSCRIPTION_ID }}" \
+            -e "ARM_CLIENT_ID=${{ inputs.TF_VAR_ARM_CLIENT_ID }}" \
+            -e "ARM_CLIENT_SECRET=${{ secrets.TF_VAR_ARM_CLIENT_SECRET }}" \
+            -e "ARM_TENANT_ID=${{ inputs.TF_VAR_ARM_TENANT_ID }}" \
+            -e "STATE_BLOBACCESSKEY=${{ secrets.TF_VAR_STATE_BLOBACCESSKEY }}" \
+            -e "TF_VAR_labname=${{ inputs.TF_VAR_labname }}" \
+            -e "TF_VAR_location=${{ inputs.TF_VAR_location }}" \
+            -e "TF_VAR_labNumberParticipants=${{ inputs.TF_VAR_labNumberParticipants }}" \
+            -e "TF_VAR_vmSizeAks=${{ inputs.TF_VAR_vmSizeAks }}" \
+            -e "TF_VAR_nodecount=${{ inputs.TF_VAR_nodecount }}" \
+            -e "TF_VAR_clientid=${{ inputs.TF_VAR_ARM_CLIENT_ID }}" \
+            -e "TF_VAR_clientsecret=${{ secrets.TF_VAR_ARM_CLIENT_SECRET }}" \
+            -e "TF_VAR_rsgcommon=${{ inputs.TF_VAR_rsgcommon }}" \
+            -e "TF_VAR_sshUserPw=${{ inputs.TF_VAR_sshUserPw }}" \
+            -v "$(pwd)"/:/workspace \
+            -w /workspace \
+            hashicorp/terraform:latest \
+              ${{ inputs.TF_ACTION }} \
+              ${{ inputs.TF_OPTIONS }}
+        working-directory: 'infrastructureAsCode'
+
+      - name: Azure Login
+        if: "{{ inputs.TF_ACTION == 'destroy' }}"
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Azure CLI script
+        if: "{{ inputs.TF_ACTION == 'destroy' }}"
+        uses: azure/CLI@v1
+        env: 
+          blob: '${{ inputs.TF_VAR_labname }}-components.tfstate'
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az storage blob delete --delete-snapshots include --account-name ${{ inputs.TF_VAR_STATE_SAACCOUNTNAME }} --container-name terraformstate --name ${blob} 
