@@ -201,6 +201,20 @@ jobs:
               ${{ env.TF_OPTIONS }}
         working-directory: 'infrastructureAsCode'
 
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Azure CLI script
+        uses: azure/CLI@v1
+        env: 
+          blob: '${{ env.TF_VAR_labname }}-components.tfstate'
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az storage blob delete --delete-snapshots include --account-name cloudacademyiacstate --container-name terraformstate --name ${blob} 
+
   hosting:
   
 
@@ -240,12 +254,13 @@ jobs:
           #!/bin/bash
           set -xe
 
-          az extension add --name storage-preview
-          az storage blob service-properties update \
-            --account-name "${{ env.TF_VAR_labname }}materials" \
-            --static-website \
-            --404-document 404.html \
-            --index-document index.html
+          # now part of terraform script
+          # az extension add --name storage-preview
+          # az storage blob service-properties update \
+          #   --account-name "${{ env.TF_VAR_labname }}materials" \
+          #   --static-website \
+          #   --404-document 404.html \
+          #   --index-document index.html
 
           cd ./hugo
         
