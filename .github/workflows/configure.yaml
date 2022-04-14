@@ -73,6 +73,7 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: executing shell script
+      working-directory: 'infrastructureAsCode'
       run: |
         #!/bin/bash
         set -xe
