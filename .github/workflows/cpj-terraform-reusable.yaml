@@ -1,4 +1,4 @@
-name: terraform
+name: cpj-terraform-reusable
 
 on:
   workflow_call:

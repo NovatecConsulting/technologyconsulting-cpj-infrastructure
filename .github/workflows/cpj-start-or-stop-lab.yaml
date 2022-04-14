@@ -1,4 +1,4 @@
-name: start-or-stop-lab
+name: cpj-start-or-stop-lab
 
 on:
   workflow_dispatch:
