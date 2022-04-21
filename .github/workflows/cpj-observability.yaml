@@ -16,7 +16,7 @@ env:
     TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
 
 jobs:
-  cpj-servicemesh:
+  cpj-observability:
     runs-on: ubuntu-latest
 
     steps:
