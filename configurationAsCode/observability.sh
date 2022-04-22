@@ -31,6 +31,8 @@ DASHBOARDS['ocelot-gc']='https://grafana.com/api/dashboards/12162/revisions/2/do
 DASHBOARDS['ocelot-http']='https://grafana.com/api/dashboards/10138/revisions/3/download'            # https://grafana.com/grafana/dashboards/10138/revisions
 DASHBOARDS['ocelot-service']='https://grafana.com/api/dashboards/10139/revisions/4/download'         # https://grafana.com/grafana/dashboards/10139/revisions
 DASHBOARDS['postgres-database']='https://grafana.com/api/dashboards/9628/revisions/5/download'       # https://grafana.com/grafana/dashboards/9628/revisions
+DASHBOARDS['alerts-overview']='https://grafana.com/api/dashboards/4181/revisions/2/download'         # https://grafana.com/grafana/dashboards/4181/revisions
+DASHBOARDS['alertmanager']='https://grafana.com/api/dashboards/9578/revisions/4/download'            # https://grafana.com/grafana/dashboards/9578/revisions
 DASHBOARDS['jaeger']='https://grafana.com/api/dashboards/10001/revisions/2/download'                 # https://grafana.com/grafana/dashboards/10001/revisions
 DASHBOARDS['k8s-storage']='https://grafana.com/api/dashboards/11455/revisions/6/download'            # https://grafana.com/grafana/dashboards/11455/revisions
 DASHBOARDS['node-exporter-full']='https://grafana.com/api/dashboards/1860/revisions/21/download'     # https://grafana.com/grafana/dashboards/1860/revisions
@@ -46,7 +48,7 @@ MAJOR="$(echo "$KUBERNETES_SERVERVERSION" | jq '.major' | tr -d '"')"
 MINOR="$(echo "$KUBERNETES_SERVERVERSION" | jq '.minor' | tr -d '"')"
 
 echo "Comparing cluster to https://github.com/prometheus-operator/kube-prometheus#kubernetes-compatibility-matrix ..."
-if [[ "$MAJOR" -eq 1 ]] && [[ "$MINOR" -ge 19 ]] && [[ "$MINOR" -le 20 ]]; then
+if [[ "$MAJOR" -eq 1 ]] && [[ "$MINOR" -ge 20 ]] && [[ "$MINOR" -le 21 ]]; then
     echo "Compatible, now continuing ..."
 else
     echo "ERROR: cluster version incompatible: $KUBERNETES_SERVERVERSION"
@@ -56,17 +58,19 @@ fi
 
 rm -rf kube-prometheus
 # heed https://github.com/prometheus-operator/kube-prometheus#kubernetes-compatibility-matrix
-git clone --branch release-0.7 https://github.com/prometheus-operator/kube-prometheus
+git clone --branch release-0.8 https://github.com/prometheus-operator/kube-prometheus
 cd kube-prometheus
 
-# uses its own namespace "monitoring", first creating the base structures
-kubectl apply -f manifests/setup/
+# prometheus-operator needs more memory in bigger setups
+sed -i -e 's#memory: 200Mi#memory: 800Mi#' -e 's#memory: 100Mi#memory: 400Mi#' manifests/setup/prometheus-operator-deployment.yaml
+# uses its own namespace "monitoring", first creating the base structures; --force might be required during upgrades
+kubectl apply --force -f manifests/setup/
 
 # wait until CRD are fully in place
 until kubectl get servicemonitors --all-namespaces ; do sleep 1; date; done
 
 # ad-hoc limit resource usage at the cost of availability
-sed -i -e 's#^  replicas: .*#  replicas: 1#' manifests/alertmanager-alertmanager.yaml manifests/prometheus-prometheus.yaml
+sed -i -e 's#^  replicas: .*#  replicas: 1#' manifests/prometheus-prometheus.yaml
 # default retention is only 24h (set to "h" as alertmanager doesn't know "d")
 sed -i -e 's#^  replicas: .*$#\0\n  retention: "336h"#' manifests/alertmanager-alertmanager.yaml manifests/prometheus-prometheus.yaml
 # persist storage ad-hoc (alternatively Thanos could be used, as utilizing the PVC requires extended privileges)
@@ -74,12 +78,39 @@ sed -i -e 's#^  retention: .*$#\0\n  storage:\n    volumeClaimTemplate:\n      a
 sed -i -e 's#^    runAsNonRoot: .*#    runAsNonRoot: false#' -e 's#^    runAsUser: .*#    runAsUser: 0\n    runAsGroup: 0#' manifests/prometheus-prometheus.yaml
 # provide additional scrape configuration (later used for blackbox and various statically listed exporters)
 sed -i -e 's#^  alerting:$#  additionalScrapeConfigs:\n    key: prometheus-additional.yaml\n    name: additional-scrape-configs\n\0#' manifests/prometheus-prometheus.yaml
-# some additional blackbox exporter rules
+# some additional alerting rules
 cat ../observability/prometheus-rules.yaml >> manifests/prometheus-rules.yaml
 # ad-hoc remove rules that won't make sense in our context
-sed -i -e '/^  - name: kubernetes-system-scheduler$/,+23d' manifests/prometheus-rules.yaml
-# Grafana base config; ad-hoc ensure all referenced plugins are present, cf. https://github.com/prometheus-operator/kube-prometheus/issues/305
-sed -i -e 's#^        name: grafana$#\0\n        env:\n        - name: GF_INSTALL_PLUGINS\n          value: "grafana-piechart-panel,novatec-sdg-panel 2.3.0"\n        - name: GF_ANALYTICS_REPORTING_ENABLED\n          value: "false"#' manifests/grafana-deployment.yaml
+sed -i -e '/^  - name: kubernetes-system-scheduler$/,+23d' manifests/kubernetes-prometheusRule.yaml
+# change alert grouping
+sed -z -i -e 's#      "group_by":\n      - "namespace"#      "group_by":\n      - "alertname"\n      - "cluster"\n      - "service"#' manifests/alertmanager-secret.yaml
+# needs more resources in bigger setups
+sed -i -e 's#cpu: ...m#cpu: 500m#' -e 's#cpu: .0m#cpu: 100m#' manifests/node-exporter-daemonset.yaml
+# adjust blackbox exporter config
+cat <<.EOF > manifests/blackbox-exporter-configuration.yaml.modules
+      "kube-api":
+        "http":
+          "method": "GET"
+          "no_follow_redirects": false
+          "preferred_ip_protocol": "ip4"
+          "tls_config":
+            "insecure_skip_verify": false
+            "ca_file": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+          "bearer_token_file": "/var/run/secrets/kubernetes.io/serviceaccount/token"
+          "valid_http_versions":
+          - "HTTP/2.0"
+          "valid_status_codes": []
+        "prober": "http"
+        "timeout": "5s"
+.EOF
+sed -i -e '/^    "modules":$/r manifests/blackbox-exporter-configuration.yaml.modules' manifests/blackbox-exporter-configuration.yaml
+# Grafana base config
+# ad-hoc ensure all referenced plugins are present, cf. https://github.com/prometheus-operator/kube-prometheus/issues/305, hardcode sdg for now
+sed -i -e 's#^        name: grafana$#\0\n        env:\n        - name: GF_INSTALL_PLUGINS\n          value: "grafana-piechart-panel,novatec-sdg-panel 2.3.0"#' manifests/grafana-deployment.yaml
+# no information disclosure
+sed -i -e 's#^        - name: GF_INSTALL_PLUGINS$#        - name: GF_ANALYTICS_REPORTING_ENABLED\n          value: "false"\n\0#' manifests/grafana-deployment.yaml
+# needs more resources in bigger setups
+sed -i -e 's#cpu: .00m#cpu: 500m#' -e 's#memory: 200Mi#memory: 400Mi#' -e 's#memory: 100Mi#memory: 200Mi#' manifests/grafana-deployment.yaml
 
 # ad-hoc add some dashboards
 for key in "${!DASHBOARDS[@]}"; do
@@ -102,8 +133,8 @@ for key in "${!DASHBOARDS[@]}"; do
         # fix panel reference in service dashboard
         [ "$key" = 'ocelot-service' ] && sed -i -e 's#"version": "2.0"#"version": "2.3.0"#' -e 's#"novatec-service-dependency-graph-panel"#"novatec-sdg-panel"#' $FILENAME
     fi
-    if [ "$key" = 'node-exporter-full' ]; then
-        # The ConfigMap "grafana-dashboard-node-exporter-full" is invalid: metadata.annotations: Too long: must have at most 262144 bytes
+    if [ "$key" = 'node-exporter-full' ] || [ "$key" = 'alertmanager' ]; then
+        # The ConfigMap "grafana-dashboard-..." is invalid: metadata.annotations: Too long: must have at most 262144 bytes
         kubectl get configmap --namespace monitoring grafana-dashboard-$key > /dev/null 2>&1 && \
             kubectl create configmap --namespace monitoring grafana-dashboard-$key --from-file=$FILENAME --dry-run=client -o yaml | kubectl replace -f - || \
             kubectl create configmap --namespace monitoring grafana-dashboard-$key --from-file=$FILENAME
@@ -112,8 +143,8 @@ for key in "${!DASHBOARDS[@]}"; do
     fi
 done
 
-# now setting up the actual default monitoring
-kubectl apply -f manifests/
+# now setting up the actual default monitoring; --force might be required during upgrades
+kubectl apply --force -f manifests/
 cd -
 
 
@@ -155,8 +186,6 @@ curl --user "elastic:$ELASTICPASSWORD" --insecure "https://$IP:5601/api/saved_ob
 kubectl apply -n monitoring -f observability/jaeger.yaml
 
 
-# blackbox exporter
-kubectl -n monitoring apply -f observability/blackbox-exporter.yaml
 PROMETHEUS_ADDITIONAL="$(
     {
         cat observability/prometheus-additional.yaml
