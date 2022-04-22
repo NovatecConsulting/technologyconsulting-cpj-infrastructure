@@ -29,6 +29,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: run observability script
+        working-directory: configurationAsCode
         run: |
           #!/bin/bash
           set -xe
