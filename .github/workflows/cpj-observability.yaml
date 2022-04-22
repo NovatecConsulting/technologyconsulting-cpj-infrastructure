@@ -104,13 +104,7 @@ jobs:
           # provide additional scrape configuration (later used for blackbox and various statically listed exporters)
           sed -i -e 's#^  alerting:$#  additionalScrapeConfigs:\n    key: prometheus-additional.yaml\n    name: additional-scrape-configs\n\0#' manifests/prometheus-prometheus.yaml
           # some additional alerting rules
-          # configurationAsCode/observability/prometheus-rules.yaml
-
-          echo ###
-          pwd
-          echo ###
-
-          cat ./observability/prometheus-rules.yaml >> manifests/prometheus-rules.yaml
+          cat ../observability/prometheus-rules.yaml >> manifests/prometheus-rules.yaml
           # ad-hoc remove rules that won't make sense in our context
           sed -i -e '/^  - name: kubernetes-system-scheduler$/,+23d' manifests/kubernetes-prometheusRule.yaml
           # change alert grouping
