@@ -177,10 +177,10 @@ jobs:
           for ((i = 0 ; i < ${COUNTMAX} ; i++)); do
               echo "VM#: $i"
               #RBAC: per default only the following namespaces will be enabled for ServiceMonitor usage: default, kube-system, monitoring
-              kubectl -n ${TF_VAR_labname}-vm-${i}-ns apply -f observability/rbac.yaml
+              kubectl -n ${TF_VAR_labname}-user-${i}-ns apply -f observability/rbac.yaml
               # collect the items in this namespace that should be covered by blackbox monitoring
               for item in $BLACKBOX_TCP; do
-                  BLACKBOX_TCP_FILL+=" $(echo "$item" | sed -e "s#:#.${TF_VAR_labname}-vm-${i}-ns:#")"
+                  BLACKBOX_TCP_FILL+=" $(echo "$item" | sed -e "s#:#.${TF_VAR_labname}-user-${i}-ns:#")"
               done
           done # per-namespace adjustments
 
