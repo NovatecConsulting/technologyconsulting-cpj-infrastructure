@@ -3,13 +3,13 @@
   scrape_timeout: 10s
   metrics_path: /probe
   params:
-    module: [tcp_connect_v4]
+    module: [tcp_connect]
   relabel_configs:
     - source_labels: [__address__]
       target_label: __param_target
     - source_labels: [__param_target]
       target_label: target
     - target_label: __address__
-      replacement: prometheus-blackbox-exporter:9115
+      replacement: blackbox-exporter.monitoring:19115
   static_configs:
   - targets:

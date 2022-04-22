@@ -1,10 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: novatec-extra-rules
+  namespace: monitoring
+spec:
+  groups:
   - name: blackbox-exporter
     rules:
     - alert: ProbeFailed
       expr: probe_success == 0
       for: 5m
       labels:
-        severity: error
+        severity: critical
       annotations:
         summary: "Probe failed (instance {{ $labels.instance }})"
         description: "Probe failed\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
@@ -20,7 +30,7 @@
       expr: probe_http_status_code <= 199 OR probe_http_status_code >= 400
       for: 5m
       labels:
-        severity: error
+        severity: critical
       annotations:
         summary: "HTTP Status Code (instance {{ $labels.instance }})"
         description: "HTTP status code is not 200-399\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
@@ -36,7 +46,7 @@
       expr: probe_ssl_earliest_cert_expiry - time()  <= 0
       for: 5m
       labels:
-        severity: error
+        severity: critical
       annotations:
         summary: "SSL certificate has expired (instance {{ $labels.instance }})"
         description: "SSL certificate has expired already\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
@@ -164,21 +174,21 @@
         summary: Host unusual network throughput out (instance {{ $labels.instance }})
         description: "Host network interfaces are probably sending too much data (> 100 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
     - alert: HostUnusualDiskReadRate
-      expr: sum by (instance) (rate(node_disk_read_bytes_total[2m])) / 1024 / 1024 > 50
-      for: 5m
+      expr: sum by (instance) (rate(node_disk_read_bytes_total[10m])) / 1024 / 1024 > 80
+      for: 10m
       labels:
         severity: warning
       annotations:
         summary: Host unusual disk read rate (instance {{ $labels.instance }})
-        description: "Disk is probably reading too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+        description: "Disk is probably reading too much data (> 80 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
     - alert: HostUnusualDiskWriteRate
-      expr: sum by (instance) (rate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 50
-      for: 2m
+      expr: sum by (instance) (rate(node_disk_written_bytes_total[10m])) / 1024 / 1024 > 80
+      for: 10m
       labels:
         severity: warning
       annotations:
         summary: Host unusual disk write rate (instance {{ $labels.instance }})
-        description: "Disk is probably writing too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+        description: "Disk is probably writing too much data (> 80 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
     - alert: HostUnusualDiskReadLatency
       expr: rate(node_disk_read_time_seconds_total[1m]) / rate(node_disk_reads_completed_total[1m]) > 0.1 and rate(node_disk_reads_completed_total[1m]) > 0
       for: 2m
@@ -196,8 +206,8 @@
         summary: Host unusual disk write latency (instance {{ $labels.instance }})
         description: "Disk latency is growing (write operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
     - alert: HostHighCpuLoad
-      expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
-      for: 0m
+      expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[10m])) * 100) > 80
+      for: 10m
       labels:
         severity: warning
       annotations:

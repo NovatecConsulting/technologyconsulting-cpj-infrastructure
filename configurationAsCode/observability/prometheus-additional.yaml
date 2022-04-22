@@ -11,4 +11,4 @@
    - source_labels: [__param_target]
      target_label: target
    - target_label: __address__
-     replacement: prometheus-blackbox-exporter:9115
+     replacement: blackbox-exporter.monitoring:19115
