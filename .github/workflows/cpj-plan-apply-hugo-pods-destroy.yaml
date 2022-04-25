@@ -133,11 +133,11 @@ jobs:
             printf "<h5>Pod $i Service ClusterIP: </h5>" >>  content/_index.md
 
             printf "<p>" >>  content/_index.md
-            kubectl describe svc "participant-pod-$i-service" | grep Ingress >>  content/_index.md
+            kubectl describe svc "${{ env.TF_VAR_participantPodLabel }}-$i-service" | grep Ingress >>  content/_index.md
             printf "</p>" >>  content/_index.md
 
             printf "<p>" >>  content/_index.md
-            kubectl describe svc "participant-pod-$i-service" | grep IPs >>  content/_index.md
+            kubectl describe svc "${{ env.TF_VAR_participantPodLabel }}-$i-service" | grep IPs >>  content/_index.md
             printf "</p>" >>  content/_index.md
             printf "<br/>" >>  content/_index.md
           done
@@ -247,8 +247,8 @@ jobs:
         for ((c = 0; c < $TF_VAR_labNumberParticipants; c++)); do
           echo "Iteration: $c"
 
-          printf "\nInnerhalb des Pods '$TF_VAR_participantPodName-$c' das Kubernetes Cluster konfigurieren, sodass der Pod über kubectl darauf zugreifen kann... \n"
-
+          printf "\nConfigure the Kubernetes cluster inside the pod '$TF_VAR_participantPodName-$c' so that the pod can access it via kubectl.... \n"
+          
           SERVICE_ACCOUNT_NAME=$TF_VAR_participantPodNamespaceName-$c-sa
           printf "$SERVICE_ACCOUNT_NAME \n"
 
