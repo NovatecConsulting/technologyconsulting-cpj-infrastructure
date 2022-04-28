@@ -556,6 +556,7 @@ jobs:
               [ $status -eq 0 ] && echo "Provision for observability in AKS run successful" || exit $status
   
   aks-stop:
+    needs: [configure-participant-pods]
     environment: aks
     runs-on: ubuntu-latest
     steps:
@@ -572,6 +573,7 @@ jobs:
             az aks stop --name "${{ env.TF_VAR_labname }}aks" --resource-group "${{ env.TF_VAR_labname }}" 
 
   aks-start:
+    needs: [aks-stop]
     environment: aks
     runs-on: ubuntu-latest
     steps:
