@@ -69,7 +69,7 @@ jobs:
     needs: terraform-plan
     uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/cpj-terraform-reusable.yaml@main
     with:
-      environment: 'tf-destroy'
+      environment: 'automatic-tf-destroy'
       TF_ACTION: 'destroy'
       TF_OPTIONS: '-auto-approve'
       TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
@@ -565,7 +565,7 @@ jobs:
   
   aks-stop:
     needs: [configure-participant-pods]
-    environment: aks
+    environment: automatic-aks
     runs-on: ubuntu-latest
     steps:
       - name: Azure Login
@@ -582,7 +582,7 @@ jobs:
 
   aks-start:
     needs: [aks-stop]
-    environment: aks
+    environment: automatic-aks
     runs-on: ubuntu-latest
     steps:
       - name: Azure Login
