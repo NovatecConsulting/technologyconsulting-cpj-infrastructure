@@ -5,33 +5,41 @@ on:
     inputs:
 
       labName:
-        description: The name of the lab (defaults to mva)
-        required: false
+        description: The name of the lab
+        required: true
+        type: string
+        default: 'mva'
 
       labNumberParticipants:
-        description: The number of participants in the lab (defaults to 20)
-        required: false
+        description: The number of participants in the lab
+        required: true
+        type: string
+        default: '16'
 
       nodeCount:
-        description: The number of nodes to create (defaults to 3)
+        description: The number of nodes to create
         required: false
+        type: string
+        default: '3'
         
       k8sVersion:
-        description: Default k8s version (defaults to 1.21.9)
+        description: Default k8s version
         required: false
+        type: string
+        default: '1.21.9'
 
 env:
-  TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
-  TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
-  TF_VAR_nodecount: ${{ github.event.inputs.nodeCount || '3'}}
-  TF_VAR_k8sVersion: ${{ github.event.inputs.k8sVersion || '1.21.9' }}
+  TF_VAR_labname: ${{ github.event.inputs.labName }}
+  TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants }}
+  TF_VAR_nodecount: ${{ github.event.inputs.nodeCount }}
+  TF_VAR_k8sVersion: ${{ github.event.inputs.k8sVersion }}
 
   # provision hosting
   hugoVersion: '0.76.1'
   ZIPPASS: 'cpjsecretpassword'
 
   # configure Participant-Pods
-  AKSNAME: ${{ github.event.inputs.labName || 'mva' }}aks'
+  AKSNAME: ${{ github.event.inputs.labName}}aks'
   TF_VAR_participantPodName: 'participant-pod-statefulset'
   TF_VAR_participantPodLabel: 'participant-pod'
   TF_VAR_participantPodNamespaceName: 'user'
@@ -43,10 +51,10 @@ jobs:
     uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/cpj-terraform-reusable.yaml@main
     with:
       TF_ACTION: 'plan'
-      TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
-      TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
-      TF_VAR_nodecount: ${{ github.event.inputs.nodeCount || '3'}}
-      TF_VAR_k8sVersion: ${{ github.event.inputs.k8sVersion || '1.21.9' }}
+      TF_VAR_labname: ${{ github.event.inputs.labName }}
+      TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants }}
+      TF_VAR_nodecount: ${{ github.event.inputs.nodeCount }}
+      TF_VAR_k8sVersion: ${{ github.event.inputs.k8sVersion }}
     secrets:
       TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
@@ -57,10 +65,10 @@ jobs:
     with:
       TF_ACTION: 'apply'
       TF_OPTIONS: '-auto-approve'
-      TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
-      TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
-      TF_VAR_nodecount: ${{ github.event.inputs.nodeCount || '3'}}
-      TF_VAR_k8sVersion: ${{ github.event.inputs.k8sVersion || '1.21.9' }}
+      TF_VAR_labname: ${{ github.event.inputs.labName }}
+      TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants }}
+      TF_VAR_nodecount: ${{ github.event.inputs.nodeCount }}
+      TF_VAR_k8sVersion: ${{ github.event.inputs.k8sVersion }}
     secrets:
       TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
@@ -72,7 +80,7 @@ jobs:
       environment: 'automatic-tf-destroy'
       TF_ACTION: 'destroy'
       TF_OPTIONS: '-auto-approve'
-      TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
+      TF_VAR_labname: ${{ github.event.inputs.labName }}
     secrets:
       TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
