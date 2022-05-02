@@ -53,6 +53,11 @@ variable "participantPodDockerUser" {
   type = string
   default = "novatec"
 }
+
 variable "sshUserPw" {
   # will be provided as environment variable.
+}
+
+variable "kubernetes_version" {
+  default = "1.21.9"
 }
