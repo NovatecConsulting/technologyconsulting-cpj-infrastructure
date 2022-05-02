@@ -654,5 +654,5 @@ jobs:
           azcliversion: 2.30.0
           inlineScript: |
             az group delete --name "${{ github.event.inputs.labname }}" --yes
-            az storage blob lease break -b terraform.tfstate --container-name terraformstate --account-name ${{ github.event.inputs.storageAccountName }}
-            az storage blob delete --delete-snapshots include --account-name ${{ github.event.inputs.storageAccountName }} --container-name terraformstate --name ${blob} 
+            az storage blob lease break -b terraform.tfstate --container-name terraformstate --account-name cloudacademyiacstate
+            az storage blob delete --delete-snapshots include --account-name cloudacademyiacstate --container-name terraformstate --name ${blob} 
