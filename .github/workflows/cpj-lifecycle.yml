@@ -37,7 +37,6 @@ env:
   TF_VAR_participantPodNamespaceName: 'user'
   TF_VAR_participantPodDockerUser: 'novatec'
   TF_VAR_sshUserPw: 'CPJSchulung2022'
-  TF_VAR_k8sVersion: '1.21.9'
 
 jobs:
   terraform-plan:
