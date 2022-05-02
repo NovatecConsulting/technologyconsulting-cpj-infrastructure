@@ -16,7 +16,7 @@ module "components" {
   clientsecret            = var.clientsecret
   rsgcommon               = var.rsgcommon
   sshUserPw               = var.sshUserPw
-  kubernetes_version      = var.kubernetes_version
+  k8sVersion              = var.k8sVersion
 }
 
 # -------------------------
@@ -60,7 +60,7 @@ variable "sshUserPw" {
   # will be provided as environment variable.
 }
 
-variable "kubernetes_version" {
+variable "k8sVersion" {
   # will be provided as environment variable.
 }
 
