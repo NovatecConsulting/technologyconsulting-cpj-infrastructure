@@ -309,7 +309,7 @@ jobs:
         done
       working-directory: 'infrastructureAsCode'
   servicemesh:
-    environment: trainer-approval-needed
+    environment: trainer-approval-needed-for-servicemesh
     needs: [configure-participant-pods]
     runs-on: ubuntu-latest
 
@@ -371,7 +371,7 @@ jobs:
           EOF
           done
   observability:
-    environment: trainer-approval-needed
+    environment: trainer-approval-needed-for-observability
     needs: [configure-participant-pods]
     runs-on: ubuntu-latest
 
