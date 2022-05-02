@@ -32,15 +32,17 @@ env:
   TF_VAR_participantPodNamespaceName: 'user'
   TF_VAR_participantPodDockerUser: 'novatec'
   TF_VAR_sshUserPw: 'CPJSchulung2022'
+  TF_VAR_k8sVersion: '1.21.9'
 
 jobs:
   terraform-plan:
     uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/cpj-terraform-reusable.yaml@main
     with:
       TF_ACTION: 'plan'
-      TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
-      TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
-      TF_VAR_nodecount: ${{ github.event.inputs.nodeCount || '3'}}
+      TF_VAR_labname: ${{ env.TF_VAR_labname }}
+      TF_VAR_labNumberParticipants: ${{ env.TF_VAR_labNumberParticipants }}
+      TF_VAR_nodecount: ${{ env.TF_VAR_nodecount }}
+      TF_VAR_k8sVersion: ${{ env.TF_VAR_k8sVersion }}
     secrets:
       TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
@@ -51,9 +53,10 @@ jobs:
     with:
       TF_ACTION: 'apply'
       TF_OPTIONS: '-auto-approve'
-      TF_VAR_labname: ${{ github.event.inputs.labName || 'mva' }}
-      TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants || '20' }}
-      TF_VAR_nodecount: ${{ github.event.inputs.nodeCount || '3'}}
+      TF_VAR_labname: ${{ env.TF_VAR_labname }}
+      TF_VAR_labNumberParticipants: ${{ env.TF_VAR_labNumberParticipants }}
+      TF_VAR_nodecount: ${{ env.TF_VAR_nodecount }}
+      TF_VAR_k8sVersion: ${{ env.TF_VAR_k8sVersion }}
     secrets:
       TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
@@ -65,6 +68,7 @@ jobs:
       environment: 'tf-destroy'
       TF_ACTION: 'destroy'
       TF_OPTIONS: '-auto-approve'
+      TF_VAR_labname: ${{ env.TF_VAR_labname }}
     secrets:
       TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
