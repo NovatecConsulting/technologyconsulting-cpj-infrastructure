@@ -606,7 +606,7 @@ jobs:
             az aks start --name "${{ env.TF_VAR_labname }}aks" --resource-group "${{ env.TF_VAR_labname }}"
 
   manual-aks-stop:
-    environment: manual-aks-start
+    environment: manual-aks-stop
     runs-on: ubuntu-latest
     steps:
       - name: Azure Login
