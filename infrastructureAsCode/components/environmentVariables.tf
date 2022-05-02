@@ -58,6 +58,6 @@ variable "sshUserPw" {
   # will be provided as environment variable.
 }
 
-variable "kubernetes_version" {
+variable "k8sVersion" {
   default = "1.21.9"
 }
