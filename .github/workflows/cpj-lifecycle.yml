@@ -596,3 +596,55 @@ jobs:
           azcliversion: 2.30.0
           inlineScript: |
             az aks start --name "${{ env.TF_VAR_labname }}aks" --resource-group "${{ env.TF_VAR_labname }}"
+
+  manual-aks-stop:
+    environment: manual-aks-start
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Azure CLI script
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az aks stop --name "${{ env.TF_VAR_labname }}aks" --resource-group "${{ env.TF_VAR_labname }}"
+
+  manual-aks-start:
+    environment: manual-aks-start
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Azure CLI script
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az aks start --name "${{ env.TF_VAR_labname }}aks" --resource-group "${{ env.TF_VAR_labname }}"
+  
+  manual-az-destroy:
+    environment: manual-az-destroy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Azure CLI script
+        uses: azure/CLI@v1
+        env: 
+          blob: '${{ github.event.inputs.labName }}-components.tfstate'
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az group delete --name "${{ github.event.inputs.labname }}" --yes
+            az storage blob lease break -b terraform.tfstate --container-name terraformstate --account-name ${{ github.event.inputs.storageAccountName }}
+            az storage blob delete --delete-snapshots include --account-name ${{ github.event.inputs.storageAccountName }} --container-name terraformstate --name ${blob} 
