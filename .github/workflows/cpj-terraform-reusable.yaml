@@ -72,6 +72,13 @@ on:
         required: false
         default: 837768d2-29f8-4c82-bd9c-ba95052b2c7f
         type: string
+      TF_VAR_k8sVersion:
+        description: The k8s version
+        required: false
+        default: "1.21.9"
+        type: string
+        
+        
 
     secrets:
       TF_VAR_ARM_CLIENT_SECRET:
@@ -121,6 +128,7 @@ jobs:
             -e "TF_VAR_clientsecret=${{ secrets.TF_VAR_ARM_CLIENT_SECRET }}" \
             -e "TF_VAR_rsgcommon=${{ inputs.TF_VAR_rsgcommon }}" \
             -e "TF_VAR_sshUserPw=${{ inputs.TF_VAR_sshUserPw }}" \
+            -e "TF_VAR_k8sVersion=${{ inputs.TF_VAR_k8sVersion }}" \
             -v "$(pwd)"/:/workspace \
             -w /workspace \
             hashicorp/terraform:latest \
