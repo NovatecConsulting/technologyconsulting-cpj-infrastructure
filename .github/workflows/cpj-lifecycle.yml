@@ -18,13 +18,13 @@ on:
 
       nodeCount:
         description: The number of nodes to create
-        required: false
+        required: true
         type: string
         default: '3'
         
       k8sVersion:
         description: Default k8s version
-        required: false
+        required: true
         type: string
         default: '1.21.9'
 
