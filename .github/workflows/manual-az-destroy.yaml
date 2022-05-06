@@ -1,0 +1,30 @@
+name: manual-az-destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+
+      labName:
+        description: The name of the lab
+        default: 'mva'
+        required: true
+
+jobs:
+  cpj-destroy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Azure CLI script
+        uses: azure/CLI@v1
+        env: 
+          blob: '${{ github.event.inputs.labName }}-components.tfstate'
+          storageAccountName: 'cloudacademyiacstate'
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az group delete --name "${{ github.event.inputs.labname }}" --yes
+            az storage blob delete --delete-snapshots include --account-name ${{ env.storageAccountName }} --container-name terraformstate --name ${{ env.blob }} 
