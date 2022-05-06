@@ -1,4 +1,4 @@
-name: cpj-lifecycle
+name: CPJ-#2-2Days-Automatic-Lifecycle
 
 on:
   workflow_dispatch:

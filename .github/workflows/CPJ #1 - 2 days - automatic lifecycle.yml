@@ -1,4 +1,4 @@
-name: cpj-lifecycle
+name: CPJ-#1-2Days-Automatic-Lifecycle #1 - 2 days - automatic lifecycle.yml
 
 on:
   workflow_dispatch:
