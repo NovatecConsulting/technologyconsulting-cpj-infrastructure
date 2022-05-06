@@ -23,9 +23,9 @@ on:
         default: mva
         type: string
       TF_VAR_labNumberParticipants:
-        description: The number of participants in the lab (defaults to 20)
+        description: The number of participants in the lab (defaults to 16)
         required: false
-        default: 20
+        default: 16
         type: string
       TF_VAR_nodecount:
         description: The number of nodes to create (defaults to 3)
