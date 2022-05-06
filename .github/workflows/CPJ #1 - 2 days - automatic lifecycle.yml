@@ -1,0 +1,352 @@
+name: cpj-lifecycle
+
+on:
+  workflow_dispatch:
+    inputs:
+
+      labName:
+        description: The name of the lab
+        required: true
+        type: string
+        default: 'cpj1'
+
+      labNumberParticipants:
+        description: The number of participants in the lab
+        required: true
+        type: string
+        default: '16'
+
+      nodeCount:
+        description: The number of nodes to create
+        required: true
+        type: string
+        default: '3'
+        
+      k8sVersion:
+        description: Default k8s version
+        required: true
+        type: string
+        default: '1.21.9'
+
+env:
+  TF_VAR_labname: ${{ github.event.inputs.labName }}
+  TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants }}
+  TF_VAR_nodecount: ${{ github.event.inputs.nodeCount }}
+  TF_VAR_k8sVersion: ${{ github.event.inputs.k8sVersion }}
+
+  # provision hosting
+  hugoVersion: '0.76.1'
+  ZIPPASS: 'cpjsecretpassword'
+
+  # configure Participant-Pods
+  AKSNAME: ${{ github.event.inputs.labName}}aks'
+  TF_VAR_participantPodName: 'participant-pod-statefulset'
+  TF_VAR_participantPodLabel: 'participant-pod'
+  TF_VAR_participantPodNamespaceName: 'user'
+  TF_VAR_participantPodDockerUser: 'novatec'
+  TF_VAR_sshUserPw: 'CPJSchulung2022'
+
+jobs:
+  terraform-plan:
+    uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/cpj-terraform-reusable.yaml@main
+    with:
+      TF_ACTION: 'plan'
+      TF_VAR_labname: ${{ github.event.inputs.labName }}
+      TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants }}
+      TF_VAR_nodecount: ${{ github.event.inputs.nodeCount }}
+      TF_VAR_k8sVersion: ${{ github.event.inputs.k8sVersion }}
+    secrets:
+      TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
+
+  terraform-apply:
+    needs: terraform-plan
+    uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/cpj-terraform-reusable.yaml@main
+    with:
+      TF_ACTION: 'apply'
+      TF_OPTIONS: '-auto-approve'
+      TF_VAR_labname: ${{ github.event.inputs.labName }}
+      TF_VAR_labNumberParticipants: ${{ github.event.inputs.labNumberParticipants }}
+      TF_VAR_nodecount: ${{ github.event.inputs.nodeCount }}
+      TF_VAR_k8sVersion: ${{ github.event.inputs.k8sVersion }}
+    secrets:
+      TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
+    
+  terraform-destroy:
+    needs: terraform-plan
+    uses: NovatecConsulting/technologyconsulting-cpj-infrastructure/.github/workflows/cpj-terraform-reusable.yaml@main
+    with:
+      environment: 'automatic-tf-destroy'
+      TF_ACTION: 'destroy'
+      TF_OPTIONS: '-auto-approve'
+      TF_VAR_labname: ${{ github.event.inputs.labName }}
+    secrets:
+      TF_VAR_ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      TF_VAR_STATE_BLOBACCESSKEY: ${{ secrets.STATE_BLOBACCESSKEY }}
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      
+  hugo-hosting:
+    needs: terraform-apply
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download Hugo
+        run: |
+          wget -c 'https://github.com/gohugoio/hugo/releases/download/v${{ env.hugoVersion }}/hugo_extended_${{ env.hugoVersion }}_Linux-64bit.deb'
+
+      - name: Install Hugo
+        run: |
+          sudo dpkg -i hugo_extended_${{ env.hugoVersion }}_Linux-64bit.deb
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Checkout excercises
+        uses: actions/checkout@master
+        with:
+          repository: NovatecConsulting/technologyconsulting-cpj-excercises
+          ref: 'main'
+          token: ${{ secrets.GH_PAT }}
+          path: './hugo'
+
+      - name: run hugo hosting shell script
+
+        run: |
+          #!/bin/bash
+          set -xe
+
+          cd ./hugo
+        
+          pwd
+          echo 'add Pod-Service data into hugofiles'
+
+          echo "<h2>IP Addressen</h2>" >> content/_index.md
+
+          AKSNAME="${{ env.TF_VAR_labname }}aks"
+
+          az aks get-credentials -g ${{ env.TF_VAR_labname }} -n $AKSNAME
+
+          echo "Get Participant Pods Service IPs"
+
+          kubectl get svc
+
+          printf "<h3>Webssh-Server Loadbalancer IP </h3>" >>  content/_index.md
+
+          printf "<p>" >>  content/_index.md
+          kubectl describe svc webssh-server | grep Ingress >>  content/_index.md
+          printf "</p>" >>  content/_index.md
+          printf "<br/>" >>  content/_index.md
+
+          printf "<h3>Pod-Service Loadbalancer IPs </h3>" >>  content/_index.md
+
+          for ((i = i; i<$TF_VAR_labNumberParticipants; i++)); do
+            printf "<h5>Pod $i Service ClusterIP: </h5>" >>  content/_index.md
+
+            printf "<p>" >>  content/_index.md
+            kubectl describe svc "${{ env.TF_VAR_participantPodLabel }}-$i-service" | grep Ingress >>  content/_index.md
+            printf "</p>" >>  content/_index.md
+
+            printf "<p>" >>  content/_index.md
+            kubectl describe svc "${{ env.TF_VAR_participantPodLabel }}-$i-service" | grep IPs >>  content/_index.md
+            printf "</p>" >>  content/_index.md
+            printf "<br/>" >>  content/_index.md
+          done
+
+
+          echo 'creating hugo static page'
+          mkdir themes && cd themes && git clone https://github.com/matcornic/hugo-theme-learn.git && cd ..
+          # TC-380: update clipboards.js to avoid jumping in page on copy-to-clipboard when focus was lost
+          curl -sSL https://raw.githubusercontent.com/zenorocha/clipboard.js/master/dist/clipboard.min.js > themes/hugo-theme-learn/static/js/clipboard.min.js
+
+          cp config.toml localZIPgenConfig.toml
+
+          sed -i 's/relativeURLs = "false"/relativeURLs = "true"/g' localZIPgenConfig.toml
+          sed -i 's/uglyURLs = "false"/uglyURLs = "true"/g' localZIPgenConfig.toml
+          sed -i 's/publishDir = "public"/publishDir = "CPJ"/g' localZIPgenConfig.toml
+          sed -i 's/baseURL = "\/"/baseURL = ""/g' localZIPgenConfig.toml
+          sed -i 's/HUGO\_BASEURL = "https\:\/\/cloudacademyhugo.z6.web.core.windows.net\/"/HUGO_BASEURL = ""/g' localZIPgenConfig.toml
+
+          cat localZIPgenConfig.toml
+          echo ""
+          echo "create zip folder"
+
+          sudo hugo --config localZIPgenConfig.toml
+          ls CPJ/
+
+          echo "zip pass var is:"
+          echo ${{ env.ZIPPASS }}
+          zip -rP ${{ env.ZIPPASS }} cloud_platform_journey-materials.zip CPJ/
+          cp cloud_platform_journey-materials.zip content/_index.files/
+          sudo hugo --log -v
+          ls public/
+
+          az storage blob upload-batch -d \$web -s ./public --account-name "${{ env.TF_VAR_labname }}materials"
+
+  configure-participant-pods:
+    needs: terraform-apply
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: executing shell script
+      run: |
+        #!/bin/bash
+        set -xe
+
+        AKSNAME="${{ env.TF_VAR_labname }}aks"
+        TF_VAR_labname="${{ env.TF_VAR_labname }}"
+        TF_VAR_sshUserPw="${{ env.TF_VAR_sshUserPw }}"
+        TF_VAR_labNumberParticipants="${{ env.TF_VAR_labNumberParticipants }}"
+        TF_VAR_participantPodName="${{ env.TF_VAR_participantPodName }}"
+        TF_VAR_participantPodLabel="${{ env.TF_VAR_participantPodLabel }}"
+        TF_VAR_participantPodNamespaceName="${{ env.TF_VAR_participantPodNamespaceName }}"
+        TF_VAR_participantPodDockerUser="${{ env.TF_VAR_participantPodDockerUser }}"
+
+
+
+
+        az aks get-credentials -g ${TF_VAR_labname} -n $AKSNAME
+
+        echo "Configure Kubectl in Participant Pods"
+
+        kubectl get pods
+
+        echo "Testing Sysbox-Daemonset"
+        until kubectl get daemonsets sysbox-deploy-k8s -n kube-system -o jsonpath="{.status.numberReady}" | grep -v --silent 0; do
+          kubectl describe daemonsets sysbox-deploy-k8s -n kube-system
+          kubectl get daemonsets sysbox-deploy-k8s -n kube-system
+
+          date
+          echo "No Worker-Node with Sysbox-Daemonset ready. Waiting 30s"
+          sleep 30
+        done
+        echo "Testing Sysbox-Daemonset Success"
+
+        echo "Testing Participant-Pod"
+        until kubectl get statefulSets $TF_VAR_participantPodName -o jsonpath="{.status.readyReplicas}" | grep -q $TF_VAR_labNumberParticipants; do
+          kubectl get statefulSets $TF_VAR_participantPodName -o jsonpath="{.status.readyReplicas}" | grep -v 0
+          kubectl get pods
+
+          date
+          echo "Not all Participant-Pod are ready. Waiting 10s"
+          sleep 10
+        done
+        echo "Testing Participant-Pod Success"
+
+        echo "Configure Participant-Pod"
+
+        USER_NOVATEC_DIR=home/$TF_VAR_participantPodDockerUser
+        USER_ROOT_DIR=/root
+
+        CONTEXT="$(kubectl config current-context)"
+        printf "$CONTEXT \n"
+
+        CLUSTER_NAME="$(kubectl config get-contexts "$CONTEXT" | awk '{print $3}' | tail -n 1)"
+        printf "$CLUSTER_NAME \n"
+
+        ENDPOINT="$(kubectl config view -o jsonpath="{.clusters[?(@.name == \"${CLUSTER_NAME}\")].cluster.server}")"
+        printf "$ENDPOINT \n"
+
+        for ((c = 0; c < $TF_VAR_labNumberParticipants; c++)); do
+          echo "Iteration: $c"
+
+          printf "\nConfigure the Kubernetes cluster inside the pod '$TF_VAR_participantPodName-$c' so that the pod can access it via kubectl.... \n"
+          
+          SERVICE_ACCOUNT_NAME=$TF_VAR_participantPodNamespaceName-$c-sa
+          printf "$SERVICE_ACCOUNT_NAME \n"
+
+          NAMESPACE=$TF_VAR_participantPodNamespaceName-$c
+          printf "$NAMESPACE \n"
+
+          SECRET_NAME="$(kubectl get sa $SERVICE_ACCOUNT_NAME --namespace=$NAMESPACE -o json | jq -r .secrets[].name)"
+          printf "$SECRET_NAME \n"
+
+          kubectl get secret --namespace=$NAMESPACE $SECRET_NAME -o json | jq -r '.data["ca.crt"]' | base64 -di > participant-pod/ca$c.crt
+
+          USER_TOKEN="$(kubectl get secret --namespace $NAMESPACE $SECRET_NAME -o json | jq -r '.data["token"]' | base64 -di)"
+          printf "$USER_TOKEN \n"
+
+
+          kubectl cp participant-pod/ca$c.crt $TF_VAR_participantPodName-$c:$USER_ROOT_DIR
+
+          rm participant-pod/ca$c.crt
+
+          kubectl cp participant-pod/example-deployments $TF_VAR_participantPodName-$c:$USER_ROOT_DIR
+          kubectl cp participant-pod/configs/.bashrc $TF_VAR_participantPodName-$c:$USER_ROOT_DIR
+
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(kubectl config set-cluster "${CLUSTER_NAME}" --server="${ENDPOINT}" --certificate-authority="${USER_ROOT_DIR}/ca${c}".crt --embed-certs=true)"
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(kubectl config set-credentials "${SERVICE_ACCOUNT_NAME}-${NAMESPACE}-${CLUSTER_NAME}" --token="${USER_TOKEN}")"
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(kubectl config set-context "${SERVICE_ACCOUNT_NAME}-${NAMESPACE}-${CLUSTER_NAME}" --cluster="${CLUSTER_NAME}" --user="${SERVICE_ACCOUNT_NAME}-${NAMESPACE}-${CLUSTER_NAME}" --namespace="${NAMESPACE}")"
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(kubectl config use-context "${SERVICE_ACCOUNT_NAME}-${NAMESPACE}-${CLUSTER_NAME}")"
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(echo  $'\nKUBECONFIG=${USER_ROOT_DIR}/.kube/config' >> "${USER_ROOT_DIR}"/.bashrc)"
+
+          echo "Configure Novatec-User \n"
+
+          kubectl cp participant-pod/example-deployments $TF_VAR_participantPodName-$c:$USER_NOVATEC_DIR
+          kubectl cp participant-pod/configs/.bash_profile $TF_VAR_participantPodName-$c:$USER_NOVATEC_DIR
+          kubectl cp participant-pod/configs/.bashrc $TF_VAR_participantPodName-$c:$USER_NOVATEC_DIR
+
+
+          # Change PW of Novatec-User
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(echo "${TF_VAR_participantPodDockerUser}:${TF_VAR_sshUserPw}" | chpasswd)"
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(mkdir -p ${USER_NOVATEC_DIR}/.kube)"
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(cp -r "${USER_ROOT_DIR}"/.kube/config "${USER_NOVATEC_DIR}"/.kube)"
+          # kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(chown -R $TF_VAR_participantPodDockerUser "${USER_NOVATEC_DIR}"/.kube/)"
+
+          kubectl exec -it $TF_VAR_participantPodName-$c -- bash -c "(echo  $'\nKUBECONFIG=${USER_NOVATEC_DIR}/.kube/config' >> "${USER_NOVATEC_DIR}/.bashrc")"
+
+        done
+      working-directory: 'infrastructureAsCode'
+  
+  aks-stop:
+    needs: [configure-participant-pods]
+    environment: automatic-aks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+            
+      - name: Azure CLI script
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az aks stop --name "${{ env.TF_VAR_labname }}aks" --resource-group "${{ env.TF_VAR_labname }}" 
+
+  aks-start:
+    needs: [aks-stop]
+    environment: automatic-aks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Azure CLI script
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az aks start --name "${{ env.TF_VAR_labname }}aks" --resource-group "${{ env.TF_VAR_labname }}"
